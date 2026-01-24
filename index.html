@@ -280,6 +280,45 @@
         #leaderboardButton:hover {
             background: rgba(0, 0, 0, 0.9);
         }
+        #gameOverButtons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1500;
+            display: none;
+            gap: 15px;
+            flex-direction: column;
+            align-items: center;
+        }
+        #restartButton, #menuButton {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            min-width: 200px;
+            text-align: center;
+            touch-action: manipulation;
+            transition: all 0.2s;
+        }
+        #restartButton {
+            background: #4CAF50;
+            color: white;
+        }
+        #restartButton:hover, #restartButton:active {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        #menuButton {
+            background: #666;
+            color: white;
+        }
+        #menuButton:hover, #menuButton:active {
+            background: #777;
+            transform: scale(1.05);
+        }
         @media (max-width: 768px) {
             #leaderboardButton {
                 padding: 12px 20px;
@@ -344,6 +383,12 @@
     
     <!-- Leaderboard Button -->
     <button id="leaderboardButton" style="display: none;">View Leaderboard</button>
+    
+    <!-- Game Over Buttons (Mobile) -->
+    <div id="gameOverButtons">
+        <button id="restartButton">🔄 Restart Game</button>
+        <button id="menuButton">🏠 Main Menu</button>
+    </div>
     
     <script src="flappy_chess.js"></script>
 </body>

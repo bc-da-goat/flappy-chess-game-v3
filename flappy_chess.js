@@ -662,11 +662,28 @@ function startGame() {
     gameState = 'playing';
     showNameInput = false;
     hideLeaderboardButton();
+    hideGameOverButtons();
     // Don't reset music timer, speed, or index - keep music playing
     
     // Start background music only if not already playing
     if (!musicPlaying) {
         playBackgroundMusic();
+    }
+}
+
+function hideGameOverButtons() {
+    const gameOverButtons = document.getElementById('gameOverButtons');
+    if (gameOverButtons) {
+        gameOverButtons.style.display = 'none';
+    }
+}
+
+function showGameOverButtons() {
+    if (isMobile && gameState === 'playing' && gameOver && !showNameInput) {
+        const gameOverButtons = document.getElementById('gameOverButtons');
+        if (gameOverButtons) {
+            gameOverButtons.style.display = 'flex';
+        }
     }
 }
 
@@ -842,9 +859,32 @@ function draw() {
             }
             
             if (!showNameInput) {
-                ctx.fillStyle = WHITE;
-                ctx.fillText('Tap to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
-                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100 * scaleFactor);
+                // Show mobile buttons on mobile devices
+                if (isMobile) {
+                    const gameOverButtons = document.getElementById('gameOverButtons');
+                    if (gameOverButtons) {
+                        gameOverButtons.style.display = 'flex';
+                    }
+                    // Still show text for desktop users who might be on mobile browser
+                    ctx.fillStyle = WHITE;
+                    ctx.font = `${Math.round(18 * scaleFactor)}px Arial`;
+                    ctx.fillText('Use buttons below', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
+                } else {
+                    // Hide mobile buttons on desktop
+                    const gameOverButtons = document.getElementById('gameOverButtons');
+                    if (gameOverButtons) {
+                        gameOverButtons.style.display = 'none';
+                    }
+                    ctx.fillStyle = WHITE;
+                    ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
+                    ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100 * scaleFactor);
+                }
+            } else {
+                // Hide buttons when name input is showing
+                const gameOverButtons = document.getElementById('gameOverButtons');
+                if (gameOverButtons) {
+                    gameOverButtons.style.display = 'none';
+                }
             }
             ctx.textAlign = 'left';
         }
@@ -932,11 +972,13 @@ function handleKeyDown(event) {
             gameState = 'title';
             stopBackgroundMusic();
             hideInterstitialAd();
+            hideGameOverButtons();
             showLeaderboardButton();
         } else if (gameState === 'playing' && gameOver) {
             gameState = 'title';
             stopBackgroundMusic();
             hideInterstitialAd();
+            hideGameOverButtons();
             showLeaderboardButton();
         }
     } else if (event.key === ' ' || event.key === 'Spacebar') {
@@ -1335,6 +1377,28 @@ async function init() {
     }
     if (closeLeaderboardBtn) {
         closeLeaderboardBtn.addEventListener('click', hideLeaderboard);
+    }
+    
+    // Setup game over buttons (mobile)
+    const restartBtn = document.getElementById('restartButton');
+    const menuBtn = document.getElementById('menuButton');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            if (gameState === 'playing' && gameOver) {
+                hideInterstitialAd();
+                startGame();
+            }
+        });
+    }
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            if (gameState === 'playing' && gameOver) {
+                gameState = 'title';
+                stopBackgroundMusic();
+                hideInterstitialAd();
+                showLeaderboardButton();
+            }
+        });
     }
     
     // Load leaderboard on init
