@@ -1,10 +1,16 @@
 // Flappy Chess - Web Version
 // Constants
-const SCREEN_WIDTH = 800;
-const SCREEN_HEIGHT = 600;
+const BASE_SCREEN_WIDTH = 800;
+const BASE_SCREEN_HEIGHT = 600;
+let SCREEN_WIDTH = 800;
+let SCREEN_HEIGHT = 600;
 const FPS = 60;
 const GRAVITY = 0.5;
 const JUMP_STRENGTH = -8;
+
+// Mobile detection
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let scaleFactor = 1.0;
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -727,13 +733,13 @@ function draw() {
             
             ctx.fillStyle = WHITE;
             ctx.font = font;
-            ctx.fillText(`Score: ${score}`, 10, 30);
+            ctx.fillText(`Score: ${score}`, 10 * scaleFactor, 30 * scaleFactor);
             
-            // Draw pause button
-            const pauseButtonX = SCREEN_WIDTH - 100;
-            const pauseButtonY = 10;
-            const pauseButtonWidth = 90;
-            const pauseButtonHeight = 30;
+            // Draw pause button (scaled for mobile)
+            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor;
+            const pauseButtonY = 10 * scaleFactor;
+            const pauseButtonWidth = 90 * scaleFactor;
+            const pauseButtonHeight = 30 * scaleFactor;
             ctx.fillStyle = 'rgb(100, 100, 100)';
             ctx.fillRect(pauseButtonX, pauseButtonY, pauseButtonWidth, pauseButtonHeight);
             ctx.strokeStyle = WHITE;
@@ -756,7 +762,7 @@ function draw() {
                 ctx.fillText('PAUSED', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50);
                 
                 ctx.font = font;
-                ctx.fillText('Press P or click PAUSE to resume', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+                ctx.fillText('Press P or click PAUSE to resume', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20 * scaleFactor);
                 ctx.textAlign = 'left';
             }
         } else {
@@ -776,15 +782,15 @@ function draw() {
                 ctx.fillText('NEW HIGH SCORE!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
             } else if (highScore > 0) {
                 ctx.fillStyle = '#888';
-                ctx.font = '24px Arial';
-                ctx.fillText(`Personal Best: ${highScore}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+                ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+                ctx.fillText(`Personal Best: ${highScore}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20 * scaleFactor);
                 ctx.font = font;
             }
             
             if (!showNameInput) {
                 ctx.fillStyle = WHITE;
-                ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60);
-                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100);
+                ctx.fillText('Tap to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
+                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100 * scaleFactor);
             }
             ctx.textAlign = 'left';
         }
@@ -901,10 +907,32 @@ function handleKeyDown(event) {
     }
 }
 
-function handleMouseClick(event) {
+function getCanvasCoordinates(event) {
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX, clientY;
+    if (event.touches) {
+        // Touch event
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else {
+        // Mouse event
+        clientX = event.clientX;
+        clientY = event.clientY;
+    }
+    
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+function handleMouseClick(event) {
+    const coords = getCanvasCoordinates(event);
+    const x = coords.x;
+    const y = coords.y;
     
     if (gameState === 'title') {
         if (startButtonRect && 
@@ -919,10 +947,10 @@ function handleMouseClick(event) {
     } else if (gameState === 'playing') {
         if (!gameOver) {
             // Check if pause button was clicked
-            const pauseButtonX = SCREEN_WIDTH - 100;
-            const pauseButtonY = 10;
-            const pauseButtonWidth = 90;
-            const pauseButtonHeight = 30;
+            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor;
+            const pauseButtonY = 10 * scaleFactor;
+            const pauseButtonWidth = 90 * scaleFactor;
+            const pauseButtonHeight = 30 * scaleFactor;
             
             if (x >= pauseButtonX && x <= pauseButtonX + pauseButtonWidth &&
                 y >= pauseButtonY && y <= pauseButtonY + pauseButtonHeight) {
@@ -934,6 +962,18 @@ function handleMouseClick(event) {
                 }
             }
         }
+    }
+}
+
+function handleTouchStart(event) {
+    event.preventDefault();
+    if (gameState === 'playing' && !gameOver && !paused) {
+        if (player) {
+            player.jump();
+        }
+    } else {
+        // Handle UI clicks
+        handleMouseClick(event);
     }
 }
 
@@ -1172,11 +1212,46 @@ async function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     
+    // Calculate responsive dimensions
+    calculateScreenDimensions();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        calculateScreenDimensions();
+    });
+    
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            calculateScreenDimensions();
+        }, 100);
+    });
+    
     await loadImages();
     loadAudio();
     
+    // Add event listeners
     canvas.addEventListener('click', handleMouseClick);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
     window.addEventListener('keydown', handleKeyDown);
+    
+    // Prevent default touch behaviors
+    document.addEventListener('touchmove', (e) => {
+        if (gameState === 'playing') {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Prevent double-tap zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
     
     // Setup ad close button
     const closeAdBtn = document.getElementById('closeAd');
