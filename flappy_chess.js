@@ -6,6 +6,28 @@ const FPS = 60;
 const GRAVITY = 0.5;
 const JUMP_STRENGTH = -8;
 
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDt7LutRyy7_bPr1_dLz95r1M2nYmXGjsA",
+    authDomain: "flappy-chess-leaderboard.firebaseapp.com",
+    databaseURL: "https://flappy-chess-leaderboard-default-rtdb.firebaseio.com",
+    projectId: "flappy-chess-leaderboard",
+    storageBucket: "flappy-chess-leaderboard.firebasestorage.app",
+    messagingSenderId: "701602105763",
+    appId: "1:701602105763:web:c28c67d8a864e9c4993216"
+};
+
+// Initialize Firebase
+let database = null;
+try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    console.log('Firebase initialized successfully');
+} catch (error) {
+    console.warn('Firebase initialization failed:', error);
+    console.warn('Leaderboard features will be disabled');
+}
+
 // Colors
 const WHITE = '#FFFFFF';
 const BLACK = '#000000';
@@ -17,6 +39,11 @@ let gameState = 'loading'; // 'loading', 'title', 'playing', 'game_over', 'shop'
 let paused = false;
 let images = {};
 let sounds = {};
+
+// Leaderboard state
+let showNameInput = false;
+let pendingScore = 0;
+let leaderboardData = [];
 
 // Audio - specific order
 let musicFiles = [
@@ -573,6 +600,8 @@ function startGame() {
     paused = false;
     spawnTimer = 0;
     gameState = 'playing';
+    showNameInput = false;
+    hideLeaderboardButton();
     // Don't reset music timer, speed, or index - keep music playing
     
     // Start background music only if not already playing
@@ -655,6 +684,11 @@ function update() {
     
     if (checkCollisions()) {
         gameOver = true;
+        pendingScore = score;
+        // Show name input modal after a short delay
+        setTimeout(() => {
+            showNameInputModal();
+        }, 1000); // Delay to let game over screen render
         // Show interstitial ad after game over
         setTimeout(() => {
             showInterstitialAd();
@@ -726,8 +760,10 @@ function draw() {
             ctx.fillStyle = WHITE;
             ctx.font = font;
             ctx.fillText(`Final Score: ${score}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 20);
-            ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40);
-            ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 80);
+            if (!showNameInput) {
+                ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40);
+                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 80);
+            }
             ctx.textAlign = 'left';
         }
     }
@@ -755,6 +791,11 @@ function drawTitleScreen() {
         ctx.drawImage(shopButton, shopButtonRect.x, shopButtonRect.y);
     }
     
+    // Show leaderboard hint
+    ctx.fillStyle = WHITE;
+    ctx.font = '20px Arial';
+    ctx.fillText('Press L to view Leaderboard', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 150);
+    
     ctx.textAlign = 'left';
     
     // Show banner ad on title screen
@@ -765,6 +806,9 @@ function drawTitleScreen() {
     } else if (bannerAd && gameState !== 'title') {
         bannerAd.style.display = 'none';
     }
+    
+    // Show leaderboard button
+    showLeaderboardButton();
 }
 
 function drawShopScreen() {
@@ -790,29 +834,47 @@ function drawShopScreen() {
 
 // Event handlers
 function handleKeyDown(event) {
+    // Close modals with Escape
     if (event.key === 'Escape') {
+        if (showNameInput) {
+            hideNameInputModal();
+            return;
+        }
+        const leaderboardModal = document.getElementById('leaderboardModal');
+        if (leaderboardModal && leaderboardModal.style.display === 'block') {
+            hideLeaderboard();
+            return;
+        }
+        
         if (gameState === 'game_over' || gameState === 'shop') {
             gameState = 'title';
             stopBackgroundMusic();
             hideInterstitialAd();
+            showLeaderboardButton();
         } else if (gameState === 'playing' && gameOver) {
             gameState = 'title';
             stopBackgroundMusic();
             hideInterstitialAd();
+            showLeaderboardButton();
         }
     } else if (event.key === ' ' || event.key === 'Spacebar') {
         if (gameState === 'playing') {
-            if (gameOver) {
+            if (gameOver && !showNameInput) {
                 hideInterstitialAd();
                 startGame();
-            } else if (!paused && player) {
+            } else if (!paused && player && !showNameInput) {
                 player.jump();
             }
         }
     } else if (event.key === 'p' || event.key === 'P') {
         // Toggle pause
-        if (gameState === 'playing' && !gameOver) {
+        if (gameState === 'playing' && !gameOver && !showNameInput) {
             paused = !paused;
+        }
+    } else if (event.key === 'l' || event.key === 'L') {
+        // Show leaderboard (when on title screen)
+        if (gameState === 'title') {
+            showLeaderboard();
         }
     }
 }
@@ -907,6 +969,168 @@ function hideInterstitialAd() {
     }
 }
 
+// Leaderboard Functions
+function showNameInputModal() {
+    if (!database) {
+        console.warn('Firebase not initialized, skipping leaderboard');
+        return;
+    }
+    
+    showNameInput = true;
+    const modal = document.getElementById('nameInputModal');
+    const input = document.getElementById('playerNameInput');
+    
+    if (modal && input) {
+        // Load saved name from localStorage
+        const savedName = localStorage.getItem('flappyChessPlayerName') || '';
+        input.value = savedName;
+        
+        modal.style.display = 'block';
+        input.focus();
+        input.select();
+        
+        // Handle Enter key
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                submitScore();
+            }
+        };
+    }
+}
+
+function hideNameInputModal() {
+    showNameInput = false;
+    const modal = document.getElementById('nameInputModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function submitScore() {
+    if (!database) return;
+    
+    const input = document.getElementById('playerNameInput');
+    if (!input) return;
+    
+    let playerName = input.value.trim();
+    
+    // Default name if empty
+    if (!playerName) {
+        playerName = 'Anonymous';
+    }
+    
+    // Sanitize name (limit length, remove special characters that might cause issues)
+    playerName = playerName.substring(0, 20).replace(/[^a-zA-Z0-9\s]/g, '');
+    if (!playerName) {
+        playerName = 'Anonymous';
+    }
+    
+    // Save name to localStorage
+    localStorage.setItem('flappyChessPlayerName', playerName);
+    
+    // Submit to Firebase
+    const scoreData = {
+        name: playerName,
+        score: pendingScore,
+        timestamp: Date.now()
+    };
+    
+    database.ref('leaderboard/scores').push(scoreData)
+        .then(() => {
+            console.log('Score submitted successfully');
+            hideNameInputModal();
+            // Refresh leaderboard
+            loadLeaderboard();
+        })
+        .catch((error) => {
+            console.error('Error submitting score:', error);
+            alert('Failed to submit score. Please try again.');
+        });
+}
+
+function loadLeaderboard() {
+    if (!database) return;
+    
+    const leaderboardRef = database.ref('leaderboard/scores');
+    
+    leaderboardRef.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+        leaderboardData = [];
+        snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            leaderboardData.push({
+                name: data.name,
+                score: data.score,
+                timestamp: data.timestamp
+            });
+        });
+        
+        // Sort by score descending
+        leaderboardData.sort((a, b) => b.score - a.score);
+        
+        updateLeaderboardDisplay();
+    });
+}
+
+function updateLeaderboardDisplay() {
+    const list = document.getElementById('leaderboardList');
+    if (!list) return;
+    
+    if (leaderboardData.length === 0) {
+        list.innerHTML = '<p style="color: #888; text-align: center;">No scores yet. Be the first!</p>';
+        return;
+    }
+    
+    let html = '';
+    leaderboardData.forEach((entry, index) => {
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+        html += `
+            <div class="leaderboardEntry">
+                <span class="rank">${medal}</span>
+                <span class="name">${escapeHtml(entry.name)}</span>
+                <span class="score">${entry.score}</span>
+            </div>
+        `;
+    });
+    
+    list.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showLeaderboard() {
+    const modal = document.getElementById('leaderboardModal');
+    if (modal) {
+        loadLeaderboard();
+        modal.style.display = 'block';
+    }
+}
+
+function hideLeaderboard() {
+    const modal = document.getElementById('leaderboardModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function showLeaderboardButton() {
+    const leaderboardBtn = document.getElementById('leaderboardButton');
+    if (leaderboardBtn && gameState === 'title') {
+        leaderboardBtn.style.display = 'block';
+    }
+}
+
+function hideLeaderboardButton() {
+    const leaderboardBtn = document.getElementById('leaderboardButton');
+    if (leaderboardBtn) {
+        leaderboardBtn.style.display = 'none';
+    }
+}
+
 // Initialize
 async function init() {
     canvas = document.getElementById('gameCanvas');
@@ -924,12 +1148,47 @@ async function init() {
         closeAdBtn.addEventListener('click', hideInterstitialAd);
     }
     
+    // Setup name input modal buttons
+    const submitBtn = document.getElementById('submitScoreBtn');
+    const skipBtn = document.getElementById('skipScoreBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', submitScore);
+    }
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+            hideNameInputModal();
+        });
+    }
+    
+    // Setup leaderboard modal
+    const leaderboardBtn = document.getElementById('leaderboardButton');
+    const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+    if (leaderboardBtn) {
+        leaderboardBtn.addEventListener('click', showLeaderboard);
+        // Show leaderboard button when on title screen
+        if (gameState === 'title') {
+            leaderboardBtn.style.display = 'block';
+        }
+    }
+    if (closeLeaderboardBtn) {
+        closeLeaderboardBtn.addEventListener('click', hideLeaderboard);
+    }
+    
+    // Load leaderboard on init
+    if (database) {
+        loadLeaderboard();
+    }
+    
     // Show banner ad on title screen
     if (gameState === 'title') {
         const bannerAd = document.getElementById('bannerAd');
         if (bannerAd) {
             bannerAd.style.display = 'block';
             initializeBannerAd();
+        }
+        // Show leaderboard button
+        if (leaderboardBtn) {
+            leaderboardBtn.style.display = 'block';
         }
     }
     
