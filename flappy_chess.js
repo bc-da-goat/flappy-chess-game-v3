@@ -55,9 +55,9 @@ let leaderboardData = [];
 // Audio - specific order
 let musicFiles = [
     'stadium bites 134.mp3',
+    'beautiful fields 138.mp3',
     'booyeah 120.mp3',
-    'trinity 150.mp3',
-    'beautiful fields 138.mp3'
+    'trinity 150.mp3'
 ];
 let currentMusicIndex = 0;
 let backgroundMusic = null;
@@ -351,6 +351,11 @@ async function loadImages() {
     gameState = 'title';
     document.getElementById('loading').style.display = 'none';
     document.getElementById('gameCanvas').style.display = 'block';
+    
+    // Start background music
+    if (!musicPlaying) {
+        playBackgroundMusic();
+    }
 }
 
 function processJetpackFrames(spriteSheet, skinType = 'default') {
@@ -800,15 +805,12 @@ function playBackgroundMusic() {
         backgroundMusic.playbackRate = newSpeed;
         musicSpeed = newSpeed;
         
-        // Backup: if onended doesn't fire, timer will switch songs
+        // Continue playing music in sequence
         backgroundMusic.onended = () => {
-            if (gameState === 'playing' && !gameOver) {
-                currentMusicIndex = (currentMusicIndex + 1) % musicFiles.length;
-                musicTimer = 0; // Reset timer
-                playBackgroundMusic();
-            } else {
-                musicPlaying = false;
-            }
+            // Continue playing music regardless of game state
+            currentMusicIndex = (currentMusicIndex + 1) % musicFiles.length;
+            musicTimer = 0; // Reset timer
+            playBackgroundMusic();
         };
         
         backgroundMusic.play().catch(err => {
@@ -944,10 +946,7 @@ function update() {
         }
     }
     
-    // Check if music needs to continue (no speed changes)
-    if (gameState !== 'playing' || gameOver) {
-        stopBackgroundMusic();
-    }
+    // Music continues playing regardless of game state
     
     if (checkCollisions()) {
         gameOver = true;
@@ -1422,13 +1421,14 @@ function handleKeyDown(event) {
         
         if (gameState === 'game_over' || gameState === 'shop') {
             gameState = 'title';
-            stopBackgroundMusic();
+            shopState = 'main';
+            // Don't stop music - keep it playing
             hideInterstitialAd();
             hideGameOverButtons();
             showLeaderboardButton();
         } else if (gameState === 'playing' && gameOver) {
             gameState = 'title';
-            stopBackgroundMusic();
+            // Don't stop music - keep it playing
             hideInterstitialAd();
             hideGameOverButtons();
             showLeaderboardButton();
@@ -2048,7 +2048,7 @@ async function init() {
         menuBtn.addEventListener('click', () => {
             if (gameState === 'playing' && gameOver) {
                 gameState = 'title';
-                stopBackgroundMusic();
+                // Don't stop music - keep it playing
                 hideInterstitialAd();
                 showLeaderboardButton();
             }
