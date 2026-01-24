@@ -1157,10 +1157,23 @@ function handleTouchStart(event) {
     }
 }
 
-// Game loop
-function gameLoop() {
-    update();
+// Game loop with frame rate limiting
+let lastFrameTime = 0;
+const targetFrameTime = 1000 / FPS; // 16.67ms for 60fps
+
+function gameLoop(currentTime) {
+    // Calculate delta time
+    const deltaTime = currentTime - lastFrameTime;
+    
+    // Only update if enough time has passed (frame rate limiting)
+    if (deltaTime >= targetFrameTime) {
+        update();
+        lastFrameTime = currentTime - (deltaTime % targetFrameTime); // Preserve leftover time
+    }
+    
+    // Always draw (for smooth rendering)
     draw();
+    
     requestAnimationFrame(gameLoop);
 }
 
@@ -1519,7 +1532,9 @@ async function init() {
         }
     }
     
-    gameLoop();
+    // Initialize frame timing
+    lastFrameTime = performance.now();
+    gameLoop(performance.now());
 }
 
 // Start when page loads
