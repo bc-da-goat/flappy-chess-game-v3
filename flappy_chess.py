@@ -131,17 +131,17 @@ class ChessPiece:
             # Pawn: only leftward movement (no vertical)
             self.vertical_speed = 0
             self.diagonal_horizontal = 0
-            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8
+            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * (2/3)  # 1/3 slower
             
         elif self.piece_type == "Rook":
             # Rook: fast vertical movement, slow leftward movement
             # Moves from top to bottom in 2 seconds
             # Screen height is 600px, piece is 50px, so travel ~550px in 120 frames (2 seconds at 60 FPS)
             # Speed needed: 550 / 120 = ~4.6 pixels per frame
-            self.vertical_speed = 4.6
+            self.vertical_speed = 4.6 * (2/3)  # 1/3 slower
             self.diagonal_horizontal = 0
             # Slow horizontal movement (half of normal speed)
-            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5
+            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5 * (2/3)  # 1/3 slower
             
         elif self.piece_type == "Knight":
             # Knight: L-shape movement (discrete jumps, not fluid)
@@ -153,17 +153,18 @@ class ChessPiece:
             self.knight_state = "vertical"  # "vertical" or "horizontal"
             self.knight_target_y = None
             self.knight_target_x = None
-            self.knight_move_speed = 8  # pixels per frame for the jump
+            self.knight_move_speed = 8 * (2/3)  # pixels per frame for the jump (1/3 slower)
             self.vertical_speed = 0  # Not used for knight
             self.diagonal_horizontal = 0
+            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * (2/3)  # 1/3 slower
             
         elif self.piece_type == "Bishop":
             # Bishop: equal vertical and leftward movement (diagonal)
             # Set both to same value for true 45-degree diagonal
-            self.vertical_speed = 5
+            self.vertical_speed = 5 * (2/3)  # 1/3 slower
             self.diagonal_horizontal = 0
             # Horizontal speed should equal vertical speed for true diagonal
-            self.horizontal_speed = 5
+            self.horizontal_speed = 5 * (2/3)  # 1/3 slower
             
         elif self.piece_type == "Queen":
             # Queen: randomly selects movement from any piece type with probabilities
@@ -204,7 +205,7 @@ class ChessPiece:
             self.vertical_speed = 0
             self.diagonal_horizontal = 0
             # Slow horizontal movement (half of normal speed)
-            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5
+            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5 * (2/3)  # 1/3 slower
             # Make King larger
             self.width = 70
             self.height = 70
@@ -212,11 +213,16 @@ class ChessPiece:
             # Default: simple forward movement
             self.vertical_speed = 0
             self.diagonal_horizontal = 0
-            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8
+            self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * (2/3)  # 1/3 slower
     
-    def update(self):
+    def update(self, speed_multiplier=1.0):
         # Increment age (for safety removal of stuck pieces)
         self.spawn_age += 1
+        
+        # Apply speed multiplier to all movement
+        effective_horizontal_speed = self.horizontal_speed * speed_multiplier
+        effective_vertical_speed = self.vertical_speed * speed_multiplier
+        effective_knight_move_speed = self.knight_move_speed * speed_multiplier
         
         # Knight has special L-shape movement (discrete jumps)
         # Queen can also use Knight movement when queen_movement_type == 'knight'
@@ -240,12 +246,12 @@ class ChessPiece:
             if self.knight_state == "vertical":
                 # Move toward vertical target (2 squares up or down)
                 distance_to_target = abs(self.knight_target_y - self.y)
-                if distance_to_target > self.knight_move_speed:
+                if distance_to_target > effective_knight_move_speed:
                     # Move toward target
                     if self.y < self.knight_target_y:
-                        self.y += self.knight_move_speed
+                        self.y += effective_knight_move_speed
                     else:
-                        self.y -= self.knight_move_speed
+                        self.y -= effective_knight_move_speed
                 else:
                     # Reached target, switch to horizontal movement
                     self.y = self.knight_target_y
@@ -256,10 +262,10 @@ class ChessPiece:
             elif self.knight_state == "horizontal":
                 # Move toward horizontal target (1 square left) - this is the ONLY leftward movement
                 distance_to_target = abs(self.knight_target_x - self.x)
-                if distance_to_target > self.knight_move_speed:
+                if distance_to_target > effective_knight_move_speed:
                     # Move toward target (leftward movement for the L-shape)
                     if self.x > self.knight_target_x:
-                        self.x -= self.knight_move_speed
+                        self.x -= effective_knight_move_speed
                 else:
                     # Reached target, switch back to vertical movement
                     self.x = self.knight_target_x
@@ -282,10 +288,10 @@ class ChessPiece:
         else:
             # Other pieces: normal movement
             # Move horizontally (each piece type has its own horizontal_speed set in setup_movement)
-            self.x -= self.horizontal_speed
+            self.x -= effective_horizontal_speed
             
             # Move vertically based on piece type and direction
-            vertical_movement = self.vertical_speed * self.vertical_direction
+            vertical_movement = effective_vertical_speed * self.vertical_direction
             self.y += vertical_movement
         
         # For Queen, occasionally change movement type
@@ -295,14 +301,14 @@ class ChessPiece:
             
             if self.queen_movement_type == 'rook':
                 # Fast vertical, slow horizontal
-                self.vertical_speed = 4.6
+                self.vertical_speed = 4.6 * (2/3)  # 1/3 slower
                 self.diagonal_horizontal = 0
-                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5
+                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * 0.5 * (2/3)  # 1/3 slower
             elif self.queen_movement_type == 'bishop':
                 # Equal vertical and horizontal
-                self.vertical_speed = 5
+                self.vertical_speed = 5 * (2/3)  # 1/3 slower
                 self.diagonal_horizontal = 0
-                self.horizontal_speed = 5
+                self.horizontal_speed = 5 * (2/3)  # 1/3 slower
             elif self.queen_movement_type == 'knight':
                 # L-shape (handled separately in update)
                 # Initialize knight movement variables
@@ -312,15 +318,15 @@ class ChessPiece:
                 self.knight_state = None  # Will be initialized in update
                 self.knight_target_y = None
                 self.knight_target_x = None
-                self.knight_move_speed = 8  # pixels per frame for the jump
+                self.knight_move_speed = 8 * (2/3)  # pixels per frame for the jump (1/3 slower)
                 self.vertical_speed = 0  # Not used for knight
                 self.diagonal_horizontal = 0
-                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8
+                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * (2/3)  # 1/3 slower
             else:  # pawn
                 # Only leftward
                 self.vertical_speed = 0
                 self.diagonal_horizontal = 0
-                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8
+                self.horizontal_speed = random.uniform(3.5, 14.0) * 0.8 * (2/3)  # 1/3 slower
         
         # Only change vertical direction when hitting top or bottom boundary (not for Knight or Queen in knight mode, they have their own logic)
         is_knight_movement = (self.piece_type == "Knight" or 
@@ -337,7 +343,12 @@ class ChessPiece:
         screen.blit(self.image, (self.x, self.y))
     
     def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
+        # Make hitbox smaller (80% of original size, centered)
+        hitbox_width = int(self.width * 0.8)
+        hitbox_height = int(self.height * 0.8)
+        hitbox_x = self.x + (self.width - hitbox_width) // 2
+        hitbox_y = self.y + (self.height - hitbox_height) // 2
+        return pygame.Rect(hitbox_x, hitbox_y, hitbox_width, hitbox_height)
 
 
 class Game:
@@ -349,8 +360,9 @@ class Game:
         # Initialize audio mixer
         pygame.mixer.init()
         
-        # Game state: "title", "playing", "game_over", "shop"
+        # Game state: "title", "playing", "game_over", "shop", "paused"
         self.state = "title"
+        self.paused = False
         
         # Load background music files in specific order
         self.music_files = [
@@ -438,6 +450,7 @@ class Game:
         self.chess_pieces = []
         self.score = 0
         self.game_over = False
+        self.paused = False
         self.spawn_timer = 0
         self.state = "playing"
         # Don't reset music timer - keep music playing
@@ -459,15 +472,9 @@ class Game:
                 pass
     
     def check_music(self):
-        """Check if music ended and play next track, adjust speed based on score"""
+        """Check if music ended and play next track"""
         if self.state == "playing" and not self.game_over:
             if self.music_playing:
-                # Calculate music speed based on score (gradually increase)
-                # Speed increases by 0.1 for every 10 points, max 2.0x speed
-                new_speed = 1.0 + (self.score // 10) * 0.1
-                new_speed = min(new_speed, 2.0)  # Cap at 2x speed
-                self.music_speed = new_speed
-                
                 # Only switch when current track ends (let songs play in their entirety)
                 if not pygame.mixer.music.get_busy():
                     # Move to next track in order
@@ -479,7 +486,6 @@ class Game:
                 pygame.mixer.music.stop()
                 self.music_playing = False
                 self.music_timer = 0
-                self.music_speed = 1.0  # Reset speed
         
     def spawn_chess_piece(self):
         """Spawn a random chess piece at a random position"""
@@ -517,9 +523,14 @@ class Game:
             self.spawn_timer = 0
             self.spawn_chess_piece()
         
+        # Calculate speed multiplier based on score (gradually increase)
+        # Speed increases by 0.1 for every 10 points, max 2.0x speed
+        speed_multiplier = 1.0 + (self.score // 10) * 0.1
+        speed_multiplier = min(speed_multiplier, 2.0)  # Cap at 2x speed
+        
         # Update chess pieces
         for piece in self.chess_pieces[:]:
-            piece.update()
+            piece.update(speed_multiplier)
             
             # Remove pieces that are far off-screen (left side)
             if piece.x < -150:
@@ -568,6 +579,29 @@ class Game:
                 # Draw score
                 score_text = self.font.render(f"Score: {self.score}", True, WHITE)
                 self.screen.blit(score_text, (10, 10))
+                
+                # Draw pause button
+                pause_button = pygame.Rect(SCREEN_WIDTH - 100, 10, 90, 30)
+                pygame.draw.rect(self.screen, (100, 100, 100), pause_button)
+                pygame.draw.rect(self.screen, WHITE, pause_button, 2)
+                pause_text = self.font.render("PAUSE", True, WHITE)
+                pause_text_rect = pause_text.get_rect(center=pause_button.center)
+                self.screen.blit(pause_text, pause_text_rect)
+                
+                # Draw pause overlay if paused
+                if self.paused:
+                    overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                    overlay.set_alpha(180)
+                    overlay.fill(BLACK)
+                    self.screen.blit(overlay, (0, 0))
+                    
+                    pause_title = self.big_font.render("PAUSED", True, WHITE)
+                    pause_title_rect = pause_title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+                    self.screen.blit(pause_title, pause_title_rect)
+                    
+                    resume_text = self.font.render("Press P or click PAUSE to resume", True, WHITE)
+                    resume_text_rect = resume_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+                    self.screen.blit(resume_text, resume_text_rect)
             else:
                 # Game over screen
                 game_over_text = self.big_font.render("GAME OVER", True, RED)
@@ -663,9 +697,13 @@ class Game:
                         if self.state == "playing":
                             if self.game_over:
                                 self.restart()
-                            else:
+                            elif not self.paused:
                                 if self.player:
                                     self.player.jump()
+                    elif event.key == pygame.K_p:
+                        # Toggle pause
+                        if self.state == "playing" and not self.game_over:
+                            self.paused = not self.paused
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # Left mouse button
@@ -678,6 +716,16 @@ class Game:
                             # Check if shop button was clicked
                             elif self.shop_button_rect.collidepoint(mouse_pos):
                                 self.state = "shop"
+                        elif self.state == "playing":
+                            if not self.game_over:
+                                # Check if pause button was clicked
+                                pause_button = pygame.Rect(SCREEN_WIDTH - 100, 10, 90, 30)
+                                if pause_button.collidepoint(mouse_pos):
+                                    self.paused = not self.paused
+                                elif not self.paused:
+                                    # Click to jump (anywhere on screen during gameplay)
+                                    if self.player:
+                                        self.player.jump()
             
             self.update()
             self.draw()

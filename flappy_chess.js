@@ -14,6 +14,7 @@ const RED = '#FF0000';
 // Game state
 let canvas, ctx;
 let gameState = 'loading'; // 'loading', 'title', 'playing', 'game_over', 'shop'
+let paused = false;
 let images = {};
 let sounds = {};
 
@@ -268,11 +269,11 @@ class ChessPiece {
         if (this.pieceType === 'Pawn') {
             this.verticalSpeed = 0;
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
         } else if (this.pieceType === 'Rook') {
-            this.verticalSpeed = 4.6;
+            this.verticalSpeed = 4.6 * (2/3);  // 1/3 slower
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5;
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5 * (2/3);  // 1/3 slower
         } else if (this.pieceType === 'Knight') {
             this.squareSize = 60;
             this.verticalJump = 2 * this.squareSize;
@@ -280,26 +281,26 @@ class ChessPiece {
             this.knightState = null;
             this.knightTargetY = null;
             this.knightTargetX = null;
-            this.knightMoveSpeed = 8;
+            this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
             this.verticalSpeed = 0;
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
         } else if (this.pieceType === 'Bishop') {
-            this.verticalSpeed = 5;
+            this.verticalSpeed = 5 * (2/3);  // 1/3 slower
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = 5;
+            this.horizontalSpeed = 5 * (2/3);  // 1/3 slower
         } else if (this.pieceType === 'Queen') {
             const movementTypes = ['rook', 'bishop', 'knight', 'pawn'];
             this.queenMovementType = movementTypes[Math.floor(Math.random() * movementTypes.length)];
             
             if (this.queenMovementType === 'rook') {
-                this.verticalSpeed = 4.6;
+                this.verticalSpeed = 4.6 * (2/3);  // 1/3 slower
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5 * (2/3);  // 1/3 slower
             } else if (this.queenMovementType === 'bishop') {
-                this.verticalSpeed = 5;
+                this.verticalSpeed = 5 * (2/3);  // 1/3 slower
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = 5;
+                this.horizontalSpeed = 5 * (2/3);  // 1/3 slower
             } else if (this.queenMovementType === 'knight') {
                 this.squareSize = 60;
                 this.verticalJump = 2 * this.squareSize;
@@ -307,23 +308,23 @@ class ChessPiece {
                 this.knightState = null;
                 this.knightTargetY = null;
                 this.knightTargetX = null;
-                this.knightMoveSpeed = 8;
+                this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
             } else {
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
             }
         } else if (this.pieceType === 'King') {
             this.verticalSpeed = 0;
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5;
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5 * (2/3);  // 1/3 slower
         } else {
             this.verticalSpeed = 0;
             this.diagonalHorizontal = 0;
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
         }
     }
     
@@ -350,11 +351,11 @@ class ChessPiece {
             
             if (this.knightState === 'vertical') {
                 const distanceToTarget = Math.abs(this.knightTargetY - this.y);
-                if (distanceToTarget > this.knightMoveSpeed) {
+                if (distanceToTarget > effectiveKnightMoveSpeed) {
                     if (this.y < this.knightTargetY) {
-                        this.y += this.knightMoveSpeed;
+                        this.y += effectiveKnightMoveSpeed;
                     } else {
-                        this.y -= this.knightMoveSpeed;
+                        this.y -= effectiveKnightMoveSpeed;
                     }
                 } else {
                     this.y = this.knightTargetY;
@@ -363,9 +364,9 @@ class ChessPiece {
                 }
             } else if (this.knightState === 'horizontal') {
                 const distanceToTarget = Math.abs(this.knightTargetX - this.x);
-                if (distanceToTarget > this.knightMoveSpeed) {
+                if (distanceToTarget > effectiveKnightMoveSpeed) {
                     if (this.x > this.knightTargetX) {
-                        this.x -= this.knightMoveSpeed;
+                        this.x -= effectiveKnightMoveSpeed;
                     }
                 } else {
                     this.x = this.knightTargetX;
@@ -387,8 +388,8 @@ class ChessPiece {
             }
         } else {
             // Normal movement
-            this.x -= this.horizontalSpeed;
-            const verticalMovement = this.verticalSpeed * this.verticalDirection;
+            this.x -= effectiveHorizontalSpeed;
+            const verticalMovement = effectiveVerticalSpeed * this.verticalDirection;
             this.y += verticalMovement;
             
             // Boundary check
@@ -407,13 +408,13 @@ class ChessPiece {
             this.queenMovementType = movementTypes[Math.floor(Math.random() * movementTypes.length)];
             
             if (this.queenMovementType === 'rook') {
-                this.verticalSpeed = 4.6;
+                this.verticalSpeed = 4.6 * (2/3);  // 1/3 slower
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * 0.5 * (2/3);  // 1/3 slower
             } else if (this.queenMovementType === 'bishop') {
-                this.verticalSpeed = 5;
+                this.verticalSpeed = 5 * (2/3);  // 1/3 slower
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = 5;
+                this.horizontalSpeed = 5 * (2/3);  // 1/3 slower
             } else if (this.queenMovementType === 'knight') {
                 this.squareSize = 60;
                 this.verticalJump = 2 * this.squareSize;
@@ -421,14 +422,14 @@ class ChessPiece {
                 this.knightState = null;
                 this.knightTargetY = null;
                 this.knightTargetX = null;
-                this.knightMoveSpeed = 8;
+                this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
             } else {
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
-                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+                this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
             }
         }
     }
@@ -440,7 +441,12 @@ class ChessPiece {
     }
     
     getRect() {
-        return { x: this.x, y: this.y, width: this.width, height: this.height };
+        // Make hitbox smaller (80% of original size, centered)
+        const hitboxWidth = Math.floor(this.width * 0.8);
+        const hitboxHeight = Math.floor(this.height * 0.8);
+        const hitboxX = this.x + Math.floor((this.width - hitboxWidth) / 2);
+        const hitboxY = this.y + Math.floor((this.height - hitboxHeight) / 2);
+        return { x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight };
     }
 }
 
@@ -516,6 +522,7 @@ function startGame() {
     chessPieces = [];
     score = 0;
     gameOver = false;
+    paused = false;
     spawnTimer = 0;
     gameState = 'playing';
     // Don't reset music timer, speed, or index - keep music playing
@@ -552,6 +559,8 @@ function checkCollisions() {
 function update() {
     if (gameState !== 'playing') return;
     
+    if (paused) return;
+    
     if (gameOver) return;
     
     player.update();
@@ -562,9 +571,13 @@ function update() {
         spawnChessPiece();
     }
     
+    // Calculate speed multiplier based on score (gradually increase)
+    // Speed increases by 0.1 for every 10 points, max 2.0x speed
+    const speedMultiplier = Math.min(1.0 + Math.floor(score / 10) * 0.1, 2.0);
+    
     for (let i = chessPieces.length - 1; i >= 0; i--) {
         const piece = chessPieces[i];
-        piece.update();
+        piece.update(speedMultiplier);
         
         if (piece.x < -150) {
             chessPieces.splice(i, 1);
@@ -587,17 +600,8 @@ function update() {
         }
     }
     
-    // Check if music needs to continue and update speed
-    if (gameState === 'playing' && !gameOver && musicPlaying) {
-        // Update music speed based on score
-        const newSpeed = Math.min(1.0 + Math.floor(score / 10) * 0.1, 2.0);
-        if (backgroundMusic && Math.abs(backgroundMusic.playbackRate - newSpeed) > 0.01) {
-            backgroundMusic.playbackRate = newSpeed;
-            musicSpeed = newSpeed;
-        }
-        
-        // Let songs play in their entirety - switching is handled by onended event
-    } else if (gameState !== 'playing' || gameOver) {
+    // Check if music needs to continue (no speed changes)
+    if (gameState !== 'playing' || gameOver) {
         stopBackgroundMusic();
     }
     
@@ -634,6 +638,37 @@ function draw() {
             ctx.fillStyle = WHITE;
             ctx.font = font;
             ctx.fillText(`Score: ${score}`, 10, 30);
+            
+            // Draw pause button
+            const pauseButtonX = SCREEN_WIDTH - 100;
+            const pauseButtonY = 10;
+            const pauseButtonWidth = 90;
+            const pauseButtonHeight = 30;
+            ctx.fillStyle = 'rgb(100, 100, 100)';
+            ctx.fillRect(pauseButtonX, pauseButtonY, pauseButtonWidth, pauseButtonHeight);
+            ctx.strokeStyle = WHITE;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pauseButtonX, pauseButtonY, pauseButtonWidth, pauseButtonHeight);
+            ctx.fillStyle = WHITE;
+            ctx.font = font;
+            ctx.textAlign = 'center';
+            ctx.fillText('PAUSE', pauseButtonX + pauseButtonWidth / 2, pauseButtonY + pauseButtonHeight / 2 + 5);
+            ctx.textAlign = 'left';
+            
+            // Draw pause overlay if paused
+            if (paused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                
+                ctx.fillStyle = WHITE;
+                ctx.font = bigFont;
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50);
+                
+                ctx.font = font;
+                ctx.fillText('Press P or click PAUSE to resume', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+                ctx.textAlign = 'left';
+            }
         } else {
             ctx.fillStyle = RED;
             ctx.font = bigFont;
@@ -722,9 +757,14 @@ function handleKeyDown(event) {
             if (gameOver) {
                 hideInterstitialAd();
                 startGame();
-            } else if (player) {
+            } else if (!paused && player) {
                 player.jump();
             }
+        }
+    } else if (event.key === 'p' || event.key === 'P') {
+        // Toggle pause
+        if (gameState === 'playing' && !gameOver) {
+            paused = !paused;
         }
     }
 }
@@ -743,6 +783,24 @@ function handleMouseClick(event) {
             x >= shopButtonRect.x && x <= shopButtonRect.x + shopButtonRect.width &&
             y >= shopButtonRect.y && y <= shopButtonRect.y + shopButtonRect.height) {
             gameState = 'shop';
+        }
+    } else if (gameState === 'playing') {
+        if (!gameOver) {
+            // Check if pause button was clicked
+            const pauseButtonX = SCREEN_WIDTH - 100;
+            const pauseButtonY = 10;
+            const pauseButtonWidth = 90;
+            const pauseButtonHeight = 30;
+            
+            if (x >= pauseButtonX && x <= pauseButtonX + pauseButtonWidth &&
+                y >= pauseButtonY && y <= pauseButtonY + pauseButtonHeight) {
+                paused = !paused;
+            } else if (!paused) {
+                // Click to jump (anywhere on screen during gameplay)
+                if (player) {
+                    player.jump();
+                }
+            }
         }
     }
 }
