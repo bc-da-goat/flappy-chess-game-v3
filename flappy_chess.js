@@ -161,6 +161,21 @@ async function loadImages() {
         jetpackFlyBronze: 'jetpack fly bronze skin.png',
         jetpackFlyTin: 'jetpack fly tin robot skin.png',
         jetpackFlyCopper: 'jetpack fly copper robot skin.png',
+        // New skins
+        jetpackFlyArcticResearcher: 'arctic researcher skin jetpack fly.png',
+        jetpackFlyLegendaryCrazedRobot: 'legendary crazed robot skin jetpack fly.png',
+        jetpackFlyLegendaryCyborg: 'legendary cyborg skin jetpack fly.png',
+        jetpackFlyLegendaryMage: 'legendary mage skin jetpack fly.png',
+        jetpackFlyLegendarySamurai: 'legendary samurai skin jetpack fly.png',
+        jetpackFlyLongHair: 'long hair skin jetpack fly.png',
+        jetpackFlyMerchant: 'merchant skin jetpack fly.png',
+        jetpackFlyPirate: 'pirate skin jetpack fly.png',
+        jetpackFlyRareCat: 'rare cat skin jetpack fly.png',
+        jetpackFlyRareFish: 'rare fish skin jetpack fly.png',
+        jetpackFlyRareGorilla: 'rare gorilla skin jetpack fly.png',
+        jetpackFlyRareIceMonster: 'rare ice monster skin jetpack fly.png',
+        jetpackFlySteampunkGorilla: 'steampunk gorilla skin jetpack fly.png',
+        jetpackFlySteamshipPilot: 'steamship pilot skin jetpack fly.png',
         hatGold: 'golden hat.png',
         hatSilver: 'silver hat.png',
         hatBronze: 'bronze hat.png',
@@ -169,9 +184,28 @@ async function loadImages() {
         thumbnailDefault: 'default jetpack man thumbnail.png',
         thumbnailTin: 'tin robot thumbnail.png',
         thumbnailCopper: 'copper robot thumbnail.png',
+        thumbnailArcticResearcher: 'arctic researcher skin thumbnail.png',
+        thumbnailLegendaryCrazedRobot: 'legendary crazed robot skin thumbnail.png',
+        thumbnailLegendaryCyborg: 'legendary cyborg skin thumbnail.png',
+        thumbnailLegendaryMage: 'legendary mage skin thumbnail.png',
+        thumbnailLegendarySamurai: 'legendary samurai skin thumbnail.png',
+        thumbnailLongHair: 'long hair skin thumbnail.png',
+        thumbnailMerchant: 'merchant skin thumbnail.png',
+        thumbnailPirate: 'pirate skin thubmnail.png',
+        thumbnailRareCat: 'rare cat skin thumbnail.png',
+        thumbnailRareFish: 'rare fish skin thumbnail.png',
+        thumbnailRareGorilla: 'Rare Gorilla skin thumbnail.png',
+        thumbnailRareIceMonster: 'rare ice monster skin thumbnail.png',
+        thumbnailSteampunkGorilla: 'steampunk gorilla skin thumbnail.png',
+        thumbnailSteamshipPilot: 'steamship pilot skin thumbnail.png',
         // Backgrounds
         backgroundMarshland: 'marshland background.png',
         backgroundMountain: 'mountain background.png',
+        backgroundSteampunkArctic: 'steampunk arctic background.png',
+        backgroundSteampunkJapan: 'steampunk japan background.png',
+        backgroundSteampunkJungle: 'steampunk jungle background.png',
+        backgroundSteampunkTradingHub: 'steampunk trading hub background.png',
+        backgroundSteampunkWaterworld: 'steampunk waterworld background.png',
         // Chess pieces
         W_Pawn: 'W_Pawn.png',
         W_Rook: 'W_Rook.png',
@@ -326,24 +360,50 @@ async function loadImages() {
     };
     
     // Process jetpack animation frames for all skins
+    // Default, Gold, Silver, Bronze, Tin, Copper are 4-frame (2x2 grid)
     if (images.jetpackFly) {
-        processJetpackFrames(images.jetpackFly, 'default');
+        processJetpackFrames(images.jetpackFly, 'default', 4);
     }
     if (images.jetpackFlyGold) {
-        processJetpackFrames(images.jetpackFlyGold, 'gold');
+        processJetpackFrames(images.jetpackFlyGold, 'gold', 4);
     }
     if (images.jetpackFlySilver) {
-        processJetpackFrames(images.jetpackFlySilver, 'silver');
+        processJetpackFrames(images.jetpackFlySilver, 'silver', 4);
     }
     if (images.jetpackFlyBronze) {
-        processJetpackFrames(images.jetpackFlyBronze, 'bronze');
+        processJetpackFrames(images.jetpackFlyBronze, 'bronze', 4);
     }
     if (images.jetpackFlyTin) {
-        processJetpackFrames(images.jetpackFlyTin, 'tin');
+        processJetpackFrames(images.jetpackFlyTin, 'tin', 4);
     }
     if (images.jetpackFlyCopper) {
-        processJetpackFrames(images.jetpackFlyCopper, 'copper');
+        processJetpackFrames(images.jetpackFlyCopper, 'copper', 4);
     }
+    
+    // New skins - process all (defaulting to 4 frames, can be adjusted per skin)
+    // Note: You may need to adjust frameCount (3 or 4) based on the Excel file
+    const newSkins = [
+        { key: 'jetpackFlyArcticResearcher', type: 'arcticResearcher', frames: 4 },
+        { key: 'jetpackFlyLegendaryCrazedRobot', type: 'legendaryCrazedRobot', frames: 4 },
+        { key: 'jetpackFlyLegendaryCyborg', type: 'legendaryCyborg', frames: 4 },
+        { key: 'jetpackFlyLegendaryMage', type: 'legendaryMage', frames: 4 },
+        { key: 'jetpackFlyLegendarySamurai', type: 'legendarySamurai', frames: 4 },
+        { key: 'jetpackFlyLongHair', type: 'longHair', frames: 4 },
+        { key: 'jetpackFlyMerchant', type: 'merchant', frames: 4 },
+        { key: 'jetpackFlyPirate', type: 'pirate', frames: 4 },
+        { key: 'jetpackFlyRareCat', type: 'rareCat', frames: 4 },
+        { key: 'jetpackFlyRareFish', type: 'rareFish', frames: 4 },
+        { key: 'jetpackFlyRareGorilla', type: 'rareGorilla', frames: 4 },
+        { key: 'jetpackFlyRareIceMonster', type: 'rareIceMonster', frames: 4 },
+        { key: 'jetpackFlySteampunkGorilla', type: 'steampunkGorilla', frames: 4 },
+        { key: 'jetpackFlySteamshipPilot', type: 'steamshipPilot', frames: 4 }
+    ];
+    
+    newSkins.forEach(skin => {
+        if (images[skin.key]) {
+            processJetpackFrames(images[skin.key], skin.type, skin.frames);
+        }
+    });
     
     // Initialize player skin based on leaderboard rank
     updatePlayerSkin();
@@ -358,15 +418,16 @@ async function loadImages() {
     }
 }
 
-function processJetpackFrames(spriteSheet, skinType = 'default') {
-    // Split 2x2 sprite sheet into 4 frames
-    const frameWidth = spriteSheet.width / 2;
-    const frameHeight = spriteSheet.height / 2;
+function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4) {
     const framesKey = skinType === 'default' ? 'jetpackFrames' : `jetpackFrames${skinType.charAt(0).toUpperCase() + skinType.slice(1)}`;
     images[framesKey] = [];
     
-    for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 2; col++) {
+    if (frameCount === 3) {
+        // 3 frames side by side
+        const frameWidth = spriteSheet.width / 3;
+        const frameHeight = spriteSheet.height;
+        
+        for (let col = 0; col < 3; col++) {
             const frameCanvas = document.createElement('canvas');
             frameCanvas.width = frameWidth;
             frameCanvas.height = frameHeight;
@@ -382,13 +443,44 @@ function processJetpackFrames(spriteSheet, skinType = 'default') {
             // Draw the frame with transparency preserved
             frameCtx.drawImage(
                 spriteSheet,
-                col * frameWidth, row * frameHeight,
+                col * frameWidth, 0,
                 frameWidth, frameHeight,
                 0, 0,
                 frameWidth, frameHeight
             );
             
             images[framesKey].push(frameCanvas);
+        }
+    } else {
+        // 4 frames in 2x2 grid (default)
+        const frameWidth = spriteSheet.width / 2;
+        const frameHeight = spriteSheet.height / 2;
+        
+        for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 2; col++) {
+                const frameCanvas = document.createElement('canvas');
+                frameCanvas.width = frameWidth;
+                frameCanvas.height = frameHeight;
+                const frameCtx = frameCanvas.getContext('2d');
+                
+                // Clear canvas to ensure transparency
+                frameCtx.clearRect(0, 0, frameWidth, frameHeight);
+                
+                // Enable image smoothing for better quality
+                frameCtx.imageSmoothingEnabled = true;
+                frameCtx.imageSmoothingQuality = 'high';
+                
+                // Draw the frame with transparency preserved
+                frameCtx.drawImage(
+                    spriteSheet,
+                    col * frameWidth, row * frameHeight,
+                    frameWidth, frameHeight,
+                    0, 0,
+                    frameWidth, frameHeight
+                );
+                
+                images[framesKey].push(frameCanvas);
+            }
         }
     }
 }
@@ -429,13 +521,27 @@ function updatePlayerSkin() {
         }
     } else {
         // Use selected skin (robot skins are never overridden)
-        if (selectedSkin === 'tin') {
-            framesKey = 'jetpackFramesTin';
-        } else if (selectedSkin === 'copper') {
-            framesKey = 'jetpackFramesCopper';
-        } else {
-            framesKey = 'jetpackFrames'; // Default fallback
-        }
+        // Map all skin IDs to their frame keys
+        const skinFrameMap = {
+            'tin': 'jetpackFramesTin',
+            'copper': 'jetpackFramesCopper',
+            'arcticResearcher': 'jetpackFramesArcticResearcher',
+            'legendaryCrazedRobot': 'jetpackFramesLegendaryCrazedRobot',
+            'legendaryCyborg': 'jetpackFramesLegendaryCyborg',
+            'legendaryMage': 'jetpackFramesLegendaryMage',
+            'legendarySamurai': 'jetpackFramesLegendarySamurai',
+            'longHair': 'jetpackFramesLongHair',
+            'merchant': 'jetpackFramesMerchant',
+            'pirate': 'jetpackFramesPirate',
+            'rareCat': 'jetpackFramesRareCat',
+            'rareFish': 'jetpackFramesRareFish',
+            'rareGorilla': 'jetpackFramesRareGorilla',
+            'rareIceMonster': 'jetpackFramesRareIceMonster',
+            'steampunkGorilla': 'jetpackFramesSteampunkGorilla',
+            'steamshipPilot': 'jetpackFramesSteamshipPilot'
+        };
+        
+        framesKey = skinFrameMap[selectedSkin] || 'jetpackFrames'; // Default fallback
     }
     
     // Update frames if they exist
@@ -997,10 +1103,17 @@ function draw() {
         // Draw background
         // Use selected background
         let currentBg = background;
-        if (selectedBackground === 'marshland' && images.backgroundMarshland) {
-            currentBg = images.backgroundMarshland;
-        } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
-            currentBg = images.backgroundMountain;
+        const bgMap = {
+            'marshland': images.backgroundMarshland,
+            'mountain': images.backgroundMountain,
+            'steampunkArctic': images.backgroundSteampunkArctic,
+            'steampunkJapan': images.backgroundSteampunkJapan,
+            'steampunkJungle': images.backgroundSteampunkJungle,
+            'steampunkTradingHub': images.backgroundSteampunkTradingHub,
+            'steampunkWaterworld': images.backgroundSteampunkWaterworld
+        };
+        if (selectedBackground !== 'default' && bgMap[selectedBackground]) {
+            currentBg = bgMap[selectedBackground];
         }
         if (currentBg) {
             ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1307,22 +1420,42 @@ function drawShopScreen() {
 }
 
 function drawSkinsShop() {
-    ctx.fillText('SKINS SHOP', SCREEN_WIDTH / 2, 80 * scaleFactor);
+    ctx.fillText('SKINS SHOP', SCREEN_WIDTH / 2, 60 * scaleFactor);
     
     const skins = [
         { id: 'default', name: 'Default', thumbnail: images.thumbnailDefault, price: 0 },
-        { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 100 },
-        { id: 'copper', name: 'Copper Robot', thumbnail: images.thumbnailCopper, price: 100 }
+        { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 0 },
+        { id: 'copper', name: 'Copper Robot', thumbnail: images.thumbnailCopper, price: 0 },
+        { id: 'arcticResearcher', name: 'Arctic Researcher', thumbnail: images.thumbnailArcticResearcher, price: 0 },
+        { id: 'legendaryCrazedRobot', name: 'Crazed Robot', thumbnail: images.thumbnailLegendaryCrazedRobot, price: 0 },
+        { id: 'legendaryCyborg', name: 'Cyborg', thumbnail: images.thumbnailLegendaryCyborg, price: 0 },
+        { id: 'legendaryMage', name: 'Mage', thumbnail: images.thumbnailLegendaryMage, price: 0 },
+        { id: 'legendarySamurai', name: 'Samurai', thumbnail: images.thumbnailLegendarySamurai, price: 0 },
+        { id: 'longHair', name: 'Long Hair', thumbnail: images.thumbnailLongHair, price: 0 },
+        { id: 'merchant', name: 'Merchant', thumbnail: images.thumbnailMerchant, price: 0 },
+        { id: 'pirate', name: 'Pirate', thumbnail: images.thumbnailPirate, price: 0 },
+        { id: 'rareCat', name: 'Cat', thumbnail: images.thumbnailRareCat, price: 0 },
+        { id: 'rareFish', name: 'Fish', thumbnail: images.thumbnailRareFish, price: 0 },
+        { id: 'rareGorilla', name: 'Gorilla', thumbnail: images.thumbnailRareGorilla, price: 0 },
+        { id: 'rareIceMonster', name: 'Ice Monster', thumbnail: images.thumbnailRareIceMonster, price: 0 },
+        { id: 'steampunkGorilla', name: 'Steampunk Gorilla', thumbnail: images.thumbnailSteampunkGorilla, price: 0 },
+        { id: 'steamshipPilot', name: 'Steamship Pilot', thumbnail: images.thumbnailSteamshipPilot, price: 0 }
     ];
     
-    const thumbnailSize = 120 * scaleFactor;
-    const spacing = 20 * scaleFactor;
-    const startX = (SCREEN_WIDTH - (skins.length * (thumbnailSize + spacing) - spacing)) / 2;
-    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    const thumbnailSize = 100 * scaleFactor;
+    const spacing = 15 * scaleFactor;
+    const itemsPerRow = Math.floor((SCREEN_WIDTH - 40 * scaleFactor) / (thumbnailSize + spacing));
+    const startX = (SCREEN_WIDTH - (itemsPerRow * (thumbnailSize + spacing) - spacing)) / 2;
+    let startY = 100 * scaleFactor;
     
     skins.forEach((skin, index) => {
-        const x = startX + index * (thumbnailSize + spacing);
-        const y = startY;
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        const x = startX + col * (thumbnailSize + spacing);
+        const y = startY + row * (thumbnailSize + spacing + 40 * scaleFactor);
+        
+        // Skip if off screen (basic culling)
+        if (y > SCREEN_HEIGHT) return;
         
         // Draw thumbnail
         if (skin.thumbnail) {
@@ -1338,24 +1471,18 @@ function drawSkinsShop() {
         
         // Draw price or "SELECTED" or "OWNED"
         ctx.fillStyle = WHITE;
-        ctx.font = `${Math.round(16 * scaleFactor)}px Arial`;
+        ctx.font = `${Math.round(14 * scaleFactor)}px Arial`;
         ctx.textAlign = 'center';
         
         if (selectedSkin === skin.id) {
             ctx.fillStyle = '#FFD700';
-            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
+            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
         } else if (hasPurchasedSkin(skin.id)) {
             ctx.fillStyle = '#0F0';
-            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
+            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
         } else {
             ctx.fillStyle = '#FFD700';
-            if (images.coin) {
-                const coinIconSize = 16 * scaleFactor;
-                ctx.drawImage(images.coin, x + thumbnailSize / 2 - 20 * scaleFactor, y + thumbnailSize + 10 * scaleFactor, coinIconSize, coinIconSize);
-                ctx.fillText(`${skin.price}`, x + thumbnailSize / 2 + 10 * scaleFactor, y + thumbnailSize + 25 * scaleFactor);
-            } else {
-                ctx.fillText(`💰 ${skin.price}`, x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
-            }
+            ctx.fillText('FREE', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
         }
     });
 }
@@ -1365,20 +1492,31 @@ function drawBackgroundsShop() {
     
     const backgrounds = [
         { id: 'default', name: 'Default', image: background, price: 0 },
-        { id: 'marshland', name: 'Marshland', image: images.backgroundMarshland, price: 150 },
-        { id: 'mountain', name: 'Mountain', image: images.backgroundMountain, price: 150 }
+        { id: 'marshland', name: 'Marshland', image: images.backgroundMarshland, price: 0 },
+        { id: 'mountain', name: 'Mountain', image: images.backgroundMountain, price: 0 },
+        { id: 'steampunkArctic', name: 'Steampunk Arctic', image: images.backgroundSteampunkArctic, price: 0 },
+        { id: 'steampunkJapan', name: 'Steampunk Japan', image: images.backgroundSteampunkJapan, price: 0 },
+        { id: 'steampunkJungle', name: 'Steampunk Jungle', image: images.backgroundSteampunkJungle, price: 0 },
+        { id: 'steampunkTradingHub', name: 'Trading Hub', image: images.backgroundSteampunkTradingHub, price: 0 },
+        { id: 'steampunkWaterworld', name: 'Waterworld', image: images.backgroundSteampunkWaterworld, price: 0 }
     ];
     
-    const thumbnailSize = 150 * scaleFactor;
-    const spacing = 20 * scaleFactor;
-    const startX = (SCREEN_WIDTH - (backgrounds.length * (thumbnailSize + spacing) - spacing)) / 2;
-    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    const thumbnailSize = 140 * scaleFactor;
+    const spacing = 15 * scaleFactor;
+    const itemsPerRow = Math.floor((SCREEN_WIDTH - 40 * scaleFactor) / (thumbnailSize + spacing));
+    const startX = (SCREEN_WIDTH - (itemsPerRow * (thumbnailSize + spacing) - spacing)) / 2;
+    let startY = 100 * scaleFactor;
     
     backgrounds.forEach((bg, index) => {
-        const x = startX + index * (thumbnailSize + spacing);
-        const y = startY;
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        const x = startX + col * (thumbnailSize + spacing);
+        const y = startY + row * (thumbnailSize * 0.75 + spacing + 40 * scaleFactor);
         
-        // Draw thumbnail
+        // Skip if off screen (basic culling)
+        if (y > SCREEN_HEIGHT) return;
+        
+        // Draw thumbnail (stretch to fit)
         if (bg.image) {
             ctx.drawImage(bg.image, x, y, thumbnailSize, thumbnailSize * 0.75);
         }
@@ -1392,24 +1530,18 @@ function drawBackgroundsShop() {
         
         // Draw price or "SELECTED" or "OWNED"
         ctx.fillStyle = WHITE;
-        ctx.font = `${Math.round(16 * scaleFactor)}px Arial`;
+        ctx.font = `${Math.round(14 * scaleFactor)}px Arial`;
         ctx.textAlign = 'center';
         
         if (selectedBackground === bg.id) {
             ctx.fillStyle = '#FFD700';
-            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 20 * scaleFactor);
         } else if (hasPurchasedBackground(bg.id)) {
             ctx.fillStyle = '#0F0';
-            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 20 * scaleFactor);
         } else {
             ctx.fillStyle = '#FFD700';
-            if (images.coin) {
-                const coinIconSize = 16 * scaleFactor;
-                ctx.drawImage(images.coin, x + thumbnailSize / 2 - 20 * scaleFactor, y + thumbnailSize * 0.75 + 10 * scaleFactor, coinIconSize, coinIconSize);
-                ctx.fillText(`${bg.price}`, x + thumbnailSize / 2 + 10 * scaleFactor, y + thumbnailSize * 0.75 + 25 * scaleFactor);
-            } else {
-                ctx.fillText(`💰 ${bg.price}`, x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
-            }
+            ctx.fillText('FREE', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 20 * scaleFactor);
         }
     });
 }
@@ -1557,34 +1689,45 @@ function handleMouseClick(event) {
 function handleSkinShopClick(x, y) {
     const skins = [
         { id: 'default', price: 0 },
-        { id: 'tin', price: 100 },
-        { id: 'copper', price: 100 }
+        { id: 'tin', price: 0 },
+        { id: 'copper', price: 0 },
+        { id: 'arcticResearcher', price: 0 },
+        { id: 'legendaryCrazedRobot', price: 0 },
+        { id: 'legendaryCyborg', price: 0 },
+        { id: 'legendaryMage', price: 0 },
+        { id: 'legendarySamurai', price: 0 },
+        { id: 'longHair', price: 0 },
+        { id: 'merchant', price: 0 },
+        { id: 'pirate', price: 0 },
+        { id: 'rareCat', price: 0 },
+        { id: 'rareFish', price: 0 },
+        { id: 'rareGorilla', price: 0 },
+        { id: 'rareIceMonster', price: 0 },
+        { id: 'steampunkGorilla', price: 0 },
+        { id: 'steamshipPilot', price: 0 }
     ];
     
-    const thumbnailSize = 120 * scaleFactor;
-    const spacing = 20 * scaleFactor;
-    const startX = (SCREEN_WIDTH - (skins.length * (thumbnailSize + spacing) - spacing)) / 2;
-    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    const thumbnailSize = 100 * scaleFactor;
+    const spacing = 15 * scaleFactor;
+    const itemsPerRow = Math.floor((SCREEN_WIDTH - 40 * scaleFactor) / (thumbnailSize + spacing));
+    const startX = (SCREEN_WIDTH - (itemsPerRow * (thumbnailSize + spacing) - spacing)) / 2;
+    let startY = 100 * scaleFactor;
     
     skins.forEach((skin, index) => {
-        const itemX = startX + index * (thumbnailSize + spacing);
-        const itemY = startY;
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        const itemX = startX + col * (thumbnailSize + spacing);
+        const itemY = startY + row * (thumbnailSize + spacing + 40 * scaleFactor);
         
         if (x >= itemX && x <= itemX + thumbnailSize &&
             y >= itemY && y <= itemY + thumbnailSize + 50 * scaleFactor) {
-            if (hasPurchasedSkin(skin.id)) {
-                // Select skin
-                selectedSkin = skin.id;
-                saveShopData();
-                updatePlayerSkin();
-            } else if (totalCoins >= skin.price) {
-                // Purchase skin
-                totalCoins -= skin.price;
-                saveCoins();
+            // All skins are free, so just select them
+            selectedSkin = skin.id;
+            saveShopData();
+            updatePlayerSkin();
+            // Auto-purchase if not already purchased
+            if (!hasPurchasedSkin(skin.id)) {
                 purchaseSkin(skin.id);
-                selectedSkin = skin.id;
-                saveShopData();
-                updatePlayerSkin();
             }
         }
     });
@@ -1593,32 +1736,35 @@ function handleSkinShopClick(x, y) {
 function handleBackgroundShopClick(x, y) {
     const backgrounds = [
         { id: 'default', price: 0 },
-        { id: 'marshland', price: 150 },
-        { id: 'mountain', price: 150 }
+        { id: 'marshland', price: 0 },
+        { id: 'mountain', price: 0 },
+        { id: 'steampunkArctic', price: 0 },
+        { id: 'steampunkJapan', price: 0 },
+        { id: 'steampunkJungle', price: 0 },
+        { id: 'steampunkTradingHub', price: 0 },
+        { id: 'steampunkWaterworld', price: 0 }
     ];
     
-    const thumbnailSize = 150 * scaleFactor;
-    const spacing = 20 * scaleFactor;
-    const startX = (SCREEN_WIDTH - (backgrounds.length * (thumbnailSize + spacing) - spacing)) / 2;
-    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    const thumbnailSize = 140 * scaleFactor;
+    const spacing = 15 * scaleFactor;
+    const itemsPerRow = Math.floor((SCREEN_WIDTH - 40 * scaleFactor) / (thumbnailSize + spacing));
+    const startX = (SCREEN_WIDTH - (itemsPerRow * (thumbnailSize + spacing) - spacing)) / 2;
+    let startY = 100 * scaleFactor;
     
     backgrounds.forEach((bg, index) => {
-        const itemX = startX + index * (thumbnailSize + spacing);
-        const itemY = startY;
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        const itemX = startX + col * (thumbnailSize + spacing);
+        const itemY = startY + row * (thumbnailSize * 0.75 + spacing + 40 * scaleFactor);
         
         if (x >= itemX && x <= itemX + thumbnailSize &&
             y >= itemY && y <= itemY + thumbnailSize * 0.75 + 50 * scaleFactor) {
-            if (hasPurchasedBackground(bg.id)) {
-                // Select background
-                selectedBackground = bg.id;
-                saveShopData();
-            } else if (totalCoins >= bg.price) {
-                // Purchase background
-                totalCoins -= bg.price;
-                saveCoins();
+            // All backgrounds are free, so just select them
+            selectedBackground = bg.id;
+            saveShopData();
+            // Auto-purchase if not already purchased
+            if (!hasPurchasedBackground(bg.id)) {
                 purchaseBackground(bg.id);
-                selectedBackground = bg.id;
-                saveShopData();
             }
         }
     });
