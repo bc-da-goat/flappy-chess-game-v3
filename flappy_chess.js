@@ -440,10 +440,12 @@ function updatePlayerSkin() {
     
     // Update frames if they exist
     if (images[framesKey] && images[framesKey].length > 0) {
-        images.jetpackFrames = images[framesKey];
+        // Create a copy of the frames array to avoid reference issues
+        images.jetpackFrames = [...images[framesKey]];
         // Update current player if exists
-        if (player && player.frames) {
-            player.frames = images.jetpackFrames;
+        if (player) {
+            // Create a new array reference for the player to ensure isolation
+            player.frames = [...images[framesKey]];
         }
     }
 }
@@ -460,7 +462,8 @@ class JetpackMan {
         this.animationTimer = 0;
         this.animationSpeed = 8;
         // Use current jetpack frames (will be updated based on rank)
-        this.frames = images.jetpackFrames || [];
+        // Create a copy to ensure frame isolation
+        this.frames = images.jetpackFrames ? [...images.jetpackFrames] : [];
     }
     
     update() {
@@ -861,8 +864,9 @@ function startGame() {
     // Load leaderboard to check for rank-based skin (will override if needed)
     loadLeaderboard().then(() => {
         updatePlayerSkin();
-        if (player) {
-            player.frames = images.jetpackFrames;
+        if (player && images.jetpackFrames) {
+            // Create a copy to ensure isolation
+            player.frames = [...images.jetpackFrames];
         }
     });
     
