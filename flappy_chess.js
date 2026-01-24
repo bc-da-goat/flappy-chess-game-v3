@@ -136,12 +136,12 @@ async function loadImages() {
         startButton: 'start game button.png',
         shopButton: 'shop button.png',
         jetpackFly: 'jetpack fly rough.png',
-        jetpackFlyGold: 'jetpack fly gold.png',
-        jetpackFlySilver: 'jetpack fly silver.png',
-        jetpackFlyBronze: 'jetpack fly bronze.png',
-        hatGold: 'hat gold.png',
-        hatSilver: 'hat silver.png',
-        hatBronze: 'hat bronze.png',
+        jetpackFlyGold: 'jetpack fly gold skin.png',
+        jetpackFlySilver: 'jetpack fly silver skin.png',
+        jetpackFlyBronze: 'jetpack fly bronze skin.png',
+        hatGold: 'golden hat.png',
+        hatSilver: 'silver hat.png',
+        hatBronze: 'bronze hat.png',
         // Chess pieces
         W_Pawn: 'W_Pawn.png',
         W_Rook: 'W_Rook.png',
@@ -1323,12 +1323,15 @@ function updateLeaderboardDisplay() {
         let rankDisplay = `${rank}.`;
         
         // Use hat icons for top 3 ranks
-        if (rank === 1 && images.hatGold) {
-            rankDisplay = `<img src="${images.hatGold.src || 'hat gold.png'}" alt="Gold" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
-        } else if (rank === 2 && images.hatSilver) {
-            rankDisplay = `<img src="${images.hatSilver.src || 'hat silver.png'}" alt="Silver" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
-        } else if (rank === 3 && images.hatBronze) {
-            rankDisplay = `<img src="${images.hatBronze.src || 'hat bronze.png'}" alt="Bronze" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        if (rank === 1) {
+            const hatSrc = images.hatGold ? images.hatGold.src : 'golden hat.png';
+            rankDisplay = `<img src="${hatSrc}" alt="Gold" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        } else if (rank === 2) {
+            const hatSrc = images.hatSilver ? images.hatSilver.src : 'silver hat.png';
+            rankDisplay = `<img src="${hatSrc}" alt="Silver" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        } else if (rank === 3) {
+            const hatSrc = images.hatBronze ? images.hatBronze.src : 'bronze hat.png';
+            rankDisplay = `<img src="${hatSrc}" alt="Bronze" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
         }
         
         html += `
