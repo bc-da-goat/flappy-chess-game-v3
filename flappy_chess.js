@@ -86,6 +86,48 @@ let background = null;
 let font = '36px Arial';
 let bigFont = '72px Arial';
 
+// Calculate responsive dimensions
+function calculateScreenDimensions() {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Maintain aspect ratio
+    const baseAspect = BASE_SCREEN_WIDTH / BASE_SCREEN_HEIGHT;
+    const windowAspect = windowWidth / windowHeight;
+    
+    if (windowAspect > baseAspect) {
+        // Window is wider - fit to height
+        SCREEN_HEIGHT = Math.min(windowHeight, BASE_SCREEN_HEIGHT);
+        SCREEN_WIDTH = SCREEN_HEIGHT * baseAspect;
+    } else {
+        // Window is taller - fit to width
+        SCREEN_WIDTH = Math.min(windowWidth, BASE_SCREEN_WIDTH);
+        SCREEN_HEIGHT = SCREEN_WIDTH / baseAspect;
+    }
+    
+    // For mobile, use full screen
+    if (isMobile) {
+        SCREEN_WIDTH = windowWidth;
+        SCREEN_HEIGHT = windowHeight;
+    }
+    
+    scaleFactor = SCREEN_WIDTH / BASE_SCREEN_WIDTH;
+    
+    // Update fonts based on scale
+    const baseFontSize = isMobile ? 24 : 36;
+    const baseBigFontSize = isMobile ? 48 : 72;
+    font = `${Math.round(baseFontSize * scaleFactor)}px Arial`;
+    bigFont = `${Math.round(baseBigFontSize * scaleFactor)}px Arial`;
+    
+    // Update canvas size
+    if (canvas) {
+        canvas.width = SCREEN_WIDTH;
+        canvas.height = SCREEN_HEIGHT;
+        canvas.style.width = SCREEN_WIDTH + 'px';
+        canvas.style.height = SCREEN_HEIGHT + 'px';
+    }
+}
+
 // Load all images
 async function loadImages() {
     const imageFiles = {
@@ -112,11 +154,18 @@ async function loadImages() {
     const loadPromises = Object.entries(imageFiles).map(([key, path]) => {
         return new Promise((resolve, reject) => {
             const img = new Image();
+            const timeout = setTimeout(() => {
+                console.warn(`Timeout loading image: ${path}`);
+                resolve(); // Continue even if image times out
+            }, 10000); // 10 second timeout per image
+            
             img.onload = () => {
+                clearTimeout(timeout);
                 images[key] = img;
                 resolve();
             };
             img.onerror = () => {
+                clearTimeout(timeout);
                 console.warn(`Failed to load image: ${path}`);
                 resolve(); // Continue even if image fails
             };
@@ -124,7 +173,12 @@ async function loadImages() {
         });
     });
 
-    await Promise.all(loadPromises);
+    try {
+        await Promise.all(loadPromises);
+    } catch (error) {
+        console.error('Error loading images:', error);
+        // Continue anyway - game can work with missing images
+    }
     
     // Process images
     if (images.background) {
