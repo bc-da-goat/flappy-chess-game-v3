@@ -42,6 +42,7 @@ const RED = '#FF0000';
 // Game state
 let canvas, ctx;
 let gameState = 'loading'; // 'loading', 'title', 'playing', 'game_over', 'shop'
+let shopState = 'main'; // 'main', 'skins', 'backgrounds'
 let paused = false;
 let images = {};
 let sounds = {};
@@ -85,6 +86,19 @@ let startButtonRect = null;
 let shopButton = null;
 let shopButtonRect = null;
 let background = null;
+
+// Shop assets
+let skinsShopButton = null;
+let skinsShopButtonRect = null;
+let backgroundsShopButton = null;
+let backgroundsShopButtonRect = null;
+let backButtonRect = null;
+
+// Shop data
+let purchasedSkins = [];
+let purchasedBackgrounds = [];
+let selectedSkin = 'default';
+let selectedBackground = 'default';
 
 // Fonts
 let font = '36px Arial';
@@ -139,14 +153,25 @@ async function loadImages() {
         logo: 'citadell games logo.png',
         startButton: 'start game button.png',
         shopButton: 'shop button.png',
+        skinsShopButton: 'skins item shop button.png',
+        backgroundsShopButton: 'background item shop button.png',
         jetpackFly: 'jetpack fly rough.png',
         jetpackFlyGold: 'jetpack fly gold skin.png',
         jetpackFlySilver: 'jetpack fly silver skin.png',
         jetpackFlyBronze: 'jetpack fly bronze skin.png',
+        jetpackFlyTin: 'jetpack fly tin robot skin.png',
+        jetpackFlyCopper: 'jetpack fly copper robot skin.png',
         hatGold: 'golden hat.png',
         hatSilver: 'silver hat.png',
         hatBronze: 'bronze hat.png',
         coin: 'coin.png',
+        // Shop thumbnails
+        thumbnailDefault: 'default jetpack man thumbnail.png',
+        thumbnailTin: 'tin robot thumbnail.png',
+        thumbnailCopper: 'copper robot thumbnail.png',
+        // Backgrounds
+        backgroundMarshland: 'marshland background.png',
+        backgroundMountain: 'mountain background.png',
         // Chess pieces
         W_Pawn: 'W_Pawn.png',
         W_Rook: 'W_Rook.png',
@@ -255,6 +280,51 @@ async function loadImages() {
         };
     }
     
+    // Process shop navigation buttons
+    if (images.skinsShopButton) {
+        const btn = images.skinsShopButton;
+        const buttonWidth = 200 * scaleFactor;
+        const buttonHeight = (btn.height * buttonWidth) / btn.width;
+        const btnCanvas = document.createElement('canvas');
+        btnCanvas.width = buttonWidth;
+        btnCanvas.height = buttonHeight;
+        const btnCtx = btnCanvas.getContext('2d');
+        btnCtx.drawImage(btn, 0, 0, buttonWidth, buttonHeight);
+        skinsShopButton = btnCanvas;
+        skinsShopButtonRect = {
+            x: SCREEN_WIDTH / 2 - buttonWidth / 2,
+            y: SCREEN_HEIGHT / 2 - 50 - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight
+        };
+    }
+    
+    if (images.backgroundsShopButton) {
+        const btn = images.backgroundsShopButton;
+        const buttonWidth = 200 * scaleFactor;
+        const buttonHeight = (btn.height * buttonWidth) / btn.width;
+        const btnCanvas = document.createElement('canvas');
+        btnCanvas.width = buttonWidth;
+        btnCanvas.height = buttonHeight;
+        const btnCtx = btnCanvas.getContext('2d');
+        btnCtx.drawImage(btn, 0, 0, buttonWidth, buttonHeight);
+        backgroundsShopButton = btnCanvas;
+        backgroundsShopButtonRect = {
+            x: SCREEN_WIDTH / 2 - buttonWidth / 2,
+            y: SCREEN_HEIGHT / 2 + 50 - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight
+        };
+    }
+    
+    // Back button rect (text-based, no image)
+    backButtonRect = {
+        x: 10 * scaleFactor,
+        y: 10 * scaleFactor,
+        width: 100 * scaleFactor,
+        height: 40 * scaleFactor
+    };
+    
     // Process jetpack animation frames for all skins
     if (images.jetpackFly) {
         processJetpackFrames(images.jetpackFly, 'default');
@@ -267,6 +337,12 @@ async function loadImages() {
     }
     if (images.jetpackFlyBronze) {
         processJetpackFrames(images.jetpackFlyBronze, 'bronze');
+    }
+    if (images.jetpackFlyTin) {
+        processJetpackFrames(images.jetpackFlyTin, 'tin');
+    }
+    if (images.jetpackFlyCopper) {
+        processJetpackFrames(images.jetpackFlyCopper, 'copper');
     }
     
     // Initialize player skin based on leaderboard rank
@@ -328,17 +404,27 @@ function getPlayerRank() {
     return null;
 }
 
-// Update player skin based on leaderboard rank
+// Update player skin based on leaderboard rank (overrides selected skin) or selected skin
 function updatePlayerSkin() {
     const rank = getPlayerRank();
     let framesKey = 'jetpackFrames'; // Default
     
+    // Rank-based skins override selected skin
     if (rank === 1) {
         framesKey = 'jetpackFramesGold';
     } else if (rank === 2) {
         framesKey = 'jetpackFramesSilver';
     } else if (rank === 3) {
         framesKey = 'jetpackFramesBronze';
+    } else {
+        // Use selected skin if no rank
+        if (selectedSkin === 'tin') {
+            framesKey = 'jetpackFramesTin';
+        } else if (selectedSkin === 'copper') {
+            framesKey = 'jetpackFramesCopper';
+        } else {
+            framesKey = 'jetpackFrames'; // Default
+        }
     }
     
     // Update frames if they exist
@@ -755,6 +841,14 @@ function startGame() {
     hideGameOverButtons();
     // Don't reset music timer, speed, or index - keep music playing
     
+    // Load leaderboard to check for rank-based skin (will override if needed)
+    loadLeaderboard().then(() => {
+        updatePlayerSkin();
+        if (player) {
+            player.frames = images.jetpackFrames;
+        }
+    });
+    
     // Start background music only if not already playing
     if (!musicPlaying) {
         playBackgroundMusic();
@@ -887,8 +981,15 @@ function draw() {
         drawShopScreen();
     } else if (gameState === 'playing') {
         // Draw background
-        if (background) {
-            ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        // Use selected background
+        let currentBg = background;
+        if (selectedBackground === 'marshland' && images.backgroundMarshland) {
+            currentBg = images.backgroundMarshland;
+        } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
+            currentBg = images.backgroundMountain;
+        }
+        if (currentBg) {
+            ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         }
         
         if (!gameOver) {
@@ -1059,8 +1160,15 @@ function draw() {
 }
 
 function drawTitleScreen() {
-    if (background) {
-        ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    // Use selected background
+    let currentBg = background;
+    if (selectedBackground === 'marshland' && images.backgroundMarshland) {
+        currentBg = images.backgroundMarshland;
+    } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
+        currentBg = images.backgroundMountain;
+    }
+    if (currentBg) {
+        ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
     if (logo) {
@@ -1145,13 +1253,151 @@ function drawShopScreen() {
     ctx.fillStyle = WHITE;
     ctx.font = bigFont;
     ctx.textAlign = 'center';
-    ctx.fillText('SHOP', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100);
+    // Use selected background
+    let currentBg = background;
+    if (selectedBackground === 'marshland' && images.backgroundMarshland) {
+        currentBg = images.backgroundMarshland;
+    } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
+        currentBg = images.backgroundMountain;
+    }
     
-    ctx.font = font;
-    ctx.fillText('The shop is not open yet!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-    ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50);
+    if (currentBg) {
+        ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
     
-    ctx.textAlign = 'left';
+    // Draw back button (except on main shop screen)
+    if (shopState !== 'main') {
+        ctx.fillStyle = '#888';
+        ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText('← Back', backButtonRect.x, backButtonRect.y + backButtonRect.height);
+        ctx.textAlign = 'center';
+    }
+    
+    if (shopState === 'main') {
+        ctx.fillText('SHOP', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 150 * scaleFactor);
+        
+        // Draw shop navigation buttons
+        if (skinsShopButton) {
+            ctx.drawImage(skinsShopButton, skinsShopButtonRect.x, skinsShopButtonRect.y);
+        }
+        if (backgroundsShopButton) {
+            ctx.drawImage(backgroundsShopButton, backgroundsShopButtonRect.x, backgroundsShopButtonRect.y);
+        }
+    } else if (shopState === 'skins') {
+        drawSkinsShop();
+    } else if (shopState === 'backgrounds') {
+        drawBackgroundsShop();
+    }
+}
+
+function drawSkinsShop() {
+    ctx.fillText('SKINS SHOP', SCREEN_WIDTH / 2, 80 * scaleFactor);
+    
+    const skins = [
+        { id: 'default', name: 'Default', thumbnail: images.thumbnailDefault, price: 0 },
+        { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 100 },
+        { id: 'copper', name: 'Copper Robot', thumbnail: images.thumbnailCopper, price: 100 }
+    ];
+    
+    const thumbnailSize = 120 * scaleFactor;
+    const spacing = 20 * scaleFactor;
+    const startX = (SCREEN_WIDTH - (skins.length * (thumbnailSize + spacing) - spacing)) / 2;
+    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    
+    skins.forEach((skin, index) => {
+        const x = startX + index * (thumbnailSize + spacing);
+        const y = startY;
+        
+        // Draw thumbnail
+        if (skin.thumbnail) {
+            ctx.drawImage(skin.thumbnail, x, y, thumbnailSize, thumbnailSize);
+        }
+        
+        // Draw selection border if selected
+        if (selectedSkin === skin.id) {
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 4 * scaleFactor;
+            ctx.strokeRect(x - 2 * scaleFactor, y - 2 * scaleFactor, thumbnailSize + 4 * scaleFactor, thumbnailSize + 4 * scaleFactor);
+        }
+        
+        // Draw price or "SELECTED" or "OWNED"
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(16 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
+        
+        if (selectedSkin === skin.id) {
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
+        } else if (hasPurchasedSkin(skin.id)) {
+            ctx.fillStyle = '#0F0';
+            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
+        } else {
+            ctx.fillStyle = '#FFD700';
+            if (images.coin) {
+                const coinIconSize = 16 * scaleFactor;
+                ctx.drawImage(images.coin, x + thumbnailSize / 2 - 20 * scaleFactor, y + thumbnailSize + 10 * scaleFactor, coinIconSize, coinIconSize);
+                ctx.fillText(`${skin.price}`, x + thumbnailSize / 2 + 10 * scaleFactor, y + thumbnailSize + 25 * scaleFactor);
+            } else {
+                ctx.fillText(`💰 ${skin.price}`, x + thumbnailSize / 2, y + thumbnailSize + 25 * scaleFactor);
+            }
+        }
+    });
+}
+
+function drawBackgroundsShop() {
+    ctx.fillText('BACKGROUNDS SHOP', SCREEN_WIDTH / 2, 80 * scaleFactor);
+    
+    const backgrounds = [
+        { id: 'default', name: 'Default', image: background, price: 0 },
+        { id: 'marshland', name: 'Marshland', image: images.backgroundMarshland, price: 150 },
+        { id: 'mountain', name: 'Mountain', image: images.backgroundMountain, price: 150 }
+    ];
+    
+    const thumbnailSize = 150 * scaleFactor;
+    const spacing = 20 * scaleFactor;
+    const startX = (SCREEN_WIDTH - (backgrounds.length * (thumbnailSize + spacing) - spacing)) / 2;
+    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    
+    backgrounds.forEach((bg, index) => {
+        const x = startX + index * (thumbnailSize + spacing);
+        const y = startY;
+        
+        // Draw thumbnail
+        if (bg.image) {
+            ctx.drawImage(bg.image, x, y, thumbnailSize, thumbnailSize * 0.75);
+        }
+        
+        // Draw selection border if selected
+        if (selectedBackground === bg.id) {
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 4 * scaleFactor;
+            ctx.strokeRect(x - 2 * scaleFactor, y - 2 * scaleFactor, thumbnailSize + 4 * scaleFactor, thumbnailSize * 0.75 + 4 * scaleFactor);
+        }
+        
+        // Draw price or "SELECTED" or "OWNED"
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(16 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
+        
+        if (selectedBackground === bg.id) {
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+        } else if (hasPurchasedBackground(bg.id)) {
+            ctx.fillStyle = '#0F0';
+            ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+        } else {
+            ctx.fillStyle = '#FFD700';
+            if (images.coin) {
+                const coinIconSize = 16 * scaleFactor;
+                ctx.drawImage(images.coin, x + thumbnailSize / 2 - 20 * scaleFactor, y + thumbnailSize * 0.75 + 10 * scaleFactor, coinIconSize, coinIconSize);
+                ctx.fillText(`${bg.price}`, x + thumbnailSize / 2 + 10 * scaleFactor, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+            } else {
+                ctx.fillText(`💰 ${bg.price}`, x + thumbnailSize / 2, y + thumbnailSize * 0.75 + 25 * scaleFactor);
+            }
+        }
+    });
 }
 
 // Event handlers
@@ -1239,6 +1485,36 @@ function handleMouseClick(event) {
             x >= shopButtonRect.x && x <= shopButtonRect.x + shopButtonRect.width &&
             y >= shopButtonRect.y && y <= shopButtonRect.y + shopButtonRect.height) {
             gameState = 'shop';
+            shopState = 'main';
+        }
+    } else if (gameState === 'shop') {
+        // Handle shop navigation
+        if (shopState === 'main') {
+            // Check skins button
+            if (skinsShopButtonRect &&
+                x >= skinsShopButtonRect.x && x <= skinsShopButtonRect.x + skinsShopButtonRect.width &&
+                y >= skinsShopButtonRect.y && y <= skinsShopButtonRect.y + skinsShopButtonRect.height) {
+                shopState = 'skins';
+            }
+            // Check backgrounds button
+            else if (backgroundsShopButtonRect &&
+                x >= backgroundsShopButtonRect.x && x <= backgroundsShopButtonRect.x + backgroundsShopButtonRect.width &&
+                y >= backgroundsShopButtonRect.y && y <= backgroundsShopButtonRect.y + backgroundsShopButtonRect.height) {
+                shopState = 'backgrounds';
+            }
+        } else {
+            // Handle back button
+            if (backButtonRect &&
+                x >= backButtonRect.x && x <= backButtonRect.x + backButtonRect.width &&
+                y >= backButtonRect.y && y <= backButtonRect.y + backButtonRect.height) {
+                shopState = 'main';
+            }
+            // Handle shop item clicks
+            else if (shopState === 'skins') {
+                handleSkinShopClick(x, y);
+            } else if (shopState === 'backgrounds') {
+                handleBackgroundShopClick(x, y);
+            }
         }
     } else if (gameState === 'playing') {
         if (!gameOver) {
@@ -1259,6 +1535,76 @@ function handleMouseClick(event) {
             }
         }
     }
+}
+
+function handleSkinShopClick(x, y) {
+    const skins = [
+        { id: 'default', price: 0 },
+        { id: 'tin', price: 100 },
+        { id: 'copper', price: 100 }
+    ];
+    
+    const thumbnailSize = 120 * scaleFactor;
+    const spacing = 20 * scaleFactor;
+    const startX = (SCREEN_WIDTH - (skins.length * (thumbnailSize + spacing) - spacing)) / 2;
+    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    
+    skins.forEach((skin, index) => {
+        const itemX = startX + index * (thumbnailSize + spacing);
+        const itemY = startY;
+        
+        if (x >= itemX && x <= itemX + thumbnailSize &&
+            y >= itemY && y <= itemY + thumbnailSize + 50 * scaleFactor) {
+            if (hasPurchasedSkin(skin.id)) {
+                // Select skin
+                selectedSkin = skin.id;
+                saveShopData();
+                updatePlayerSkin();
+            } else if (totalCoins >= skin.price) {
+                // Purchase skin
+                totalCoins -= skin.price;
+                saveCoins();
+                purchaseSkin(skin.id);
+                selectedSkin = skin.id;
+                saveShopData();
+                updatePlayerSkin();
+            }
+        }
+    });
+}
+
+function handleBackgroundShopClick(x, y) {
+    const backgrounds = [
+        { id: 'default', price: 0 },
+        { id: 'marshland', price: 150 },
+        { id: 'mountain', price: 150 }
+    ];
+    
+    const thumbnailSize = 150 * scaleFactor;
+    const spacing = 20 * scaleFactor;
+    const startX = (SCREEN_WIDTH - (backgrounds.length * (thumbnailSize + spacing) - spacing)) / 2;
+    const startY = SCREEN_HEIGHT / 2 - 50 * scaleFactor;
+    
+    backgrounds.forEach((bg, index) => {
+        const itemX = startX + index * (thumbnailSize + spacing);
+        const itemY = startY;
+        
+        if (x >= itemX && x <= itemX + thumbnailSize &&
+            y >= itemY && y <= itemY + thumbnailSize * 0.75 + 50 * scaleFactor) {
+            if (hasPurchasedBackground(bg.id)) {
+                // Select background
+                selectedBackground = bg.id;
+                saveShopData();
+            } else if (totalCoins >= bg.price) {
+                // Purchase background
+                totalCoins -= bg.price;
+                saveCoins();
+                purchaseBackground(bg.id);
+                selectedBackground = bg.id;
+                saveShopData();
+            }
+        }
+    });
 }
 
 function handleTouchStart(event) {
@@ -1363,6 +1709,58 @@ function saveCoins() {
 function addCoins(amount) {
     totalCoins += amount;
     saveCoins();
+}
+
+// Shop data functions
+function loadShopData() {
+    const savedSkins = localStorage.getItem('flappyChessPurchasedSkins');
+    if (savedSkins) {
+        purchasedSkins = JSON.parse(savedSkins);
+    }
+    
+    const savedBackgrounds = localStorage.getItem('flappyChessPurchasedBackgrounds');
+    if (savedBackgrounds) {
+        purchasedBackgrounds = JSON.parse(savedBackgrounds);
+    }
+    
+    const savedSkin = localStorage.getItem('flappyChessSelectedSkin');
+    if (savedSkin) {
+        selectedSkin = savedSkin;
+    }
+    
+    const savedBackground = localStorage.getItem('flappyChessSelectedBackground');
+    if (savedBackground) {
+        selectedBackground = savedBackground;
+    }
+}
+
+function saveShopData() {
+    localStorage.setItem('flappyChessPurchasedSkins', JSON.stringify(purchasedSkins));
+    localStorage.setItem('flappyChessPurchasedBackgrounds', JSON.stringify(purchasedBackgrounds));
+    localStorage.setItem('flappyChessSelectedSkin', selectedSkin);
+    localStorage.setItem('flappyChessSelectedBackground', selectedBackground);
+}
+
+function purchaseSkin(skinId) {
+    if (!purchasedSkins.includes(skinId)) {
+        purchasedSkins.push(skinId);
+        saveShopData();
+    }
+}
+
+function purchaseBackground(bgId) {
+    if (!purchasedBackgrounds.includes(bgId)) {
+        purchasedBackgrounds.push(bgId);
+        saveShopData();
+    }
+}
+
+function hasPurchasedSkin(skinId) {
+    return skinId === 'default' || purchasedSkins.includes(skinId);
+}
+
+function hasPurchasedBackground(bgId) {
+    return bgId === 'default' || purchasedBackgrounds.includes(bgId);
 }
 
 function showNameInputModal() {
@@ -1572,6 +1970,9 @@ async function init() {
     
     // Load coins from localStorage
     loadCoins();
+    
+    // Load shop data from localStorage
+    loadShopData();
     
     // Add event listeners
     canvas.addEventListener('click', handleMouseClick);
