@@ -377,24 +377,24 @@ async function loadImages() {
         processJetpackFrames(images.jetpackFlyTin, 'tin', 4);
     }
     if (images.jetpackFlyCopper) {
-        processJetpackFrames(images.jetpackFlyCopper, 'copper', 4);
+        processJetpackFrames(images.jetpackFlyCopper, 'copper', 3);
     }
     
     // New skins - process all (defaulting to 4 frames, can be adjusted per skin)
-    // Note: You may need to adjust frameCount (3 or 4) based on the Excel file
+    // Skins with 3 frames side-by-side: copper, pirate, longHair, arcticResearcher, merchant, rareIceMonster, legendaryCyborg, legendarySamurai
     const newSkins = [
-        { key: 'jetpackFlyArcticResearcher', type: 'arcticResearcher', frames: 4 },
+        { key: 'jetpackFlyArcticResearcher', type: 'arcticResearcher', frames: 3 },
         { key: 'jetpackFlyLegendaryCrazedRobot', type: 'legendaryCrazedRobot', frames: 4 },
-        { key: 'jetpackFlyLegendaryCyborg', type: 'legendaryCyborg', frames: 4 },
+        { key: 'jetpackFlyLegendaryCyborg', type: 'legendaryCyborg', frames: 3 },
         { key: 'jetpackFlyLegendaryMage', type: 'legendaryMage', frames: 4 },
-        { key: 'jetpackFlyLegendarySamurai', type: 'legendarySamurai', frames: 4 },
-        { key: 'jetpackFlyLongHair', type: 'longHair', frames: 4 },
-        { key: 'jetpackFlyMerchant', type: 'merchant', frames: 4 },
-        { key: 'jetpackFlyPirate', type: 'pirate', frames: 4 },
+        { key: 'jetpackFlyLegendarySamurai', type: 'legendarySamurai', frames: 3 },
+        { key: 'jetpackFlyLongHair', type: 'longHair', frames: 3 },
+        { key: 'jetpackFlyMerchant', type: 'merchant', frames: 3 },
+        { key: 'jetpackFlyPirate', type: 'pirate', frames: 3 },
         { key: 'jetpackFlyRareCat', type: 'rareCat', frames: 4 },
         { key: 'jetpackFlyRareFish', type: 'rareFish', frames: 4 },
         { key: 'jetpackFlyRareGorilla', type: 'rareGorilla', frames: 4 },
-        { key: 'jetpackFlyRareIceMonster', type: 'rareIceMonster', frames: 4 },
+        { key: 'jetpackFlyRareIceMonster', type: 'rareIceMonster', frames: 3 },
         { key: 'jetpackFlySteampunkGorilla', type: 'steampunkGorilla', frames: 4 },
         { key: 'jetpackFlySteamshipPilot', type: 'steamshipPilot', frames: 4 }
     ];
@@ -423,8 +423,7 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
     images[framesKey] = [];
     
     if (frameCount === 3) {
-        // 3 frames side by side
-        // Calculate frame width, ensuring we use all pixels
+        // 3 frames side by side - each frame is exactly 1/3 of the width
         const totalWidth = spriteSheet.width;
         const frameWidth = Math.floor(totalWidth / 3);
         const frameHeight = spriteSheet.height;
@@ -442,14 +441,13 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
             frameCtx.imageSmoothingEnabled = true;
             frameCtx.imageSmoothingQuality = 'high';
             
-            // Calculate source coordinates as integers
+            // Calculate exact source coordinates - use same width for all frames to avoid stretching
             const sourceX = col * frameWidth;
             const sourceY = 0;
-            // For the last frame, use remaining width to avoid cutting off pixels
-            const sourceWidth = (col === 2) ? (totalWidth - sourceX) : frameWidth;
+            const sourceWidth = frameWidth; // Use consistent width, not variable
             const sourceHeight = frameHeight;
             
-            // Draw the frame with transparency preserved
+            // Draw the frame - source and destination dimensions must match to avoid distortion
             frameCtx.drawImage(
                 spriteSheet,
                 sourceX, sourceY,
@@ -461,8 +459,7 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
             images[framesKey].push(frameCanvas);
         }
     } else {
-        // 4 frames in 2x2 grid (default)
-        // Calculate frame dimensions, ensuring we use all pixels
+        // 4 frames in 2x2 grid (default) - each frame is exactly 1/2 width and 1/2 height
         const totalWidth = spriteSheet.width;
         const totalHeight = spriteSheet.height;
         const frameWidth = Math.floor(totalWidth / 2);
@@ -478,17 +475,17 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
                 // Clear canvas to ensure transparency
                 frameCtx.clearRect(0, 0, frameWidth, frameHeight);
                 
-                // Disable image smoothing to preserve pixel-perfect rendering
-                frameCtx.imageSmoothingEnabled = false;
+                // Enable image smoothing for better quality
+                frameCtx.imageSmoothingEnabled = true;
+                frameCtx.imageSmoothingQuality = 'high';
                 
-                // Calculate source coordinates as integers
+                // Calculate exact source coordinates - use same dimensions for all frames
                 const sourceX = col * frameWidth;
                 const sourceY = row * frameHeight;
-                // For edge frames, use remaining width/height to avoid cutting off pixels
-                const sourceWidth = (col === 1) ? (totalWidth - sourceX) : frameWidth;
-                const sourceHeight = (row === 1) ? (totalHeight - sourceY) : frameHeight;
+                const sourceWidth = frameWidth; // Use consistent width
+                const sourceHeight = frameHeight; // Use consistent height
                 
-                // Draw the frame with transparency preserved
+                // Draw the frame - source and destination dimensions must match to avoid distortion
                 frameCtx.drawImage(
                     spriteSheet,
                     sourceX, sourceY,
