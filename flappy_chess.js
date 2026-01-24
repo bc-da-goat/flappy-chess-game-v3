@@ -136,6 +136,12 @@ async function loadImages() {
         startButton: 'start game button.png',
         shopButton: 'shop button.png',
         jetpackFly: 'jetpack fly rough.png',
+        jetpackFlyGold: 'jetpack fly gold.png',
+        jetpackFlySilver: 'jetpack fly silver.png',
+        jetpackFlyBronze: 'jetpack fly bronze.png',
+        hatGold: 'hat gold.png',
+        hatSilver: 'hat silver.png',
+        hatBronze: 'hat bronze.png',
         // Chess pieces
         W_Pawn: 'W_Pawn.png',
         W_Rook: 'W_Rook.png',
@@ -244,21 +250,34 @@ async function loadImages() {
         };
     }
     
-    // Process jetpack animation frames
+    // Process jetpack animation frames for all skins
     if (images.jetpackFly) {
-        processJetpackFrames(images.jetpackFly);
+        processJetpackFrames(images.jetpackFly, 'default');
     }
+    if (images.jetpackFlyGold) {
+        processJetpackFrames(images.jetpackFlyGold, 'gold');
+    }
+    if (images.jetpackFlySilver) {
+        processJetpackFrames(images.jetpackFlySilver, 'silver');
+    }
+    if (images.jetpackFlyBronze) {
+        processJetpackFrames(images.jetpackFlyBronze, 'bronze');
+    }
+    
+    // Initialize player skin based on leaderboard rank
+    updatePlayerSkin();
     
     gameState = 'title';
     document.getElementById('loading').style.display = 'none';
     document.getElementById('gameCanvas').style.display = 'block';
 }
 
-function processJetpackFrames(spriteSheet) {
+function processJetpackFrames(spriteSheet, skinType = 'default') {
     // Split 2x2 sprite sheet into 4 frames
     const frameWidth = spriteSheet.width / 2;
     const frameHeight = spriteSheet.height / 2;
-    images.jetpackFrames = [];
+    const framesKey = skinType === 'default' ? 'jetpackFrames' : `jetpackFrames${skinType.charAt(0).toUpperCase() + skinType.slice(1)}`;
+    images[framesKey] = [];
     
     for (let row = 0; row < 2; row++) {
         for (let col = 0; col < 2; col++) {
@@ -273,7 +292,46 @@ function processJetpackFrames(spriteSheet) {
                 0, 0,
                 frameWidth, frameHeight
             );
-            images.jetpackFrames.push(frameCanvas);
+            images[framesKey].push(frameCanvas);
+        }
+    }
+}
+
+// Get player's leaderboard rank
+function getPlayerRank() {
+    const playerName = localStorage.getItem('flappyChessPlayerName');
+    if (!playerName || !leaderboardData || leaderboardData.length === 0) {
+        return null;
+    }
+    
+    // Find player's rank in leaderboard
+    for (let i = 0; i < leaderboardData.length; i++) {
+        if (leaderboardData[i].name === playerName) {
+            return i + 1; // Rank is 1-indexed
+        }
+    }
+    return null;
+}
+
+// Update player skin based on leaderboard rank
+function updatePlayerSkin() {
+    const rank = getPlayerRank();
+    let framesKey = 'jetpackFrames'; // Default
+    
+    if (rank === 1) {
+        framesKey = 'jetpackFramesGold';
+    } else if (rank === 2) {
+        framesKey = 'jetpackFramesSilver';
+    } else if (rank === 3) {
+        framesKey = 'jetpackFramesBronze';
+    }
+    
+    // Update frames if they exist
+    if (images[framesKey] && images[framesKey].length > 0) {
+        images.jetpackFrames = images[framesKey];
+        // Update current player if exists
+        if (player && player.frames) {
+            player.frames = images.jetpackFrames;
         }
     }
 }
@@ -289,6 +347,7 @@ class JetpackMan {
         this.currentFrame = 0;
         this.animationTimer = 0;
         this.animationSpeed = 8;
+        // Use current jetpack frames (will be updated based on rank)
         this.frames = images.jetpackFrames || [];
     }
     
@@ -653,6 +712,9 @@ function stopBackgroundMusic() {
 
 // Game functions
 function startGame() {
+    // Update player skin before creating player
+    updatePlayerSkin();
+    
     player = new JetpackMan(100, SCREEN_HEIGHT / 2);
     chessPieces = [];
     score = 0;
@@ -1206,7 +1268,7 @@ function submitScore() {
         .then(() => {
             console.log('Score submitted successfully');
             hideNameInputModal();
-            // Refresh leaderboard
+            // Refresh leaderboard (which will update player skin)
             loadLeaderboard();
         })
         .catch((error) => {
@@ -1239,6 +1301,9 @@ function loadLeaderboard() {
         // Sort by score descending
         leaderboardData.sort((a, b) => b.score - a.score);
         
+        // Update player skin based on new leaderboard data
+        updatePlayerSkin();
+        
         updateLeaderboardDisplay();
     });
 }
@@ -1255,10 +1320,20 @@ function updateLeaderboardDisplay() {
     let html = '';
     leaderboardData.forEach((entry, index) => {
         const rank = index + 1;
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+        let rankDisplay = `${rank}.`;
+        
+        // Use hat icons for top 3 ranks
+        if (rank === 1 && images.hatGold) {
+            rankDisplay = `<img src="${images.hatGold.src || 'hat gold.png'}" alt="Gold" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        } else if (rank === 2 && images.hatSilver) {
+            rankDisplay = `<img src="${images.hatSilver.src || 'hat silver.png'}" alt="Silver" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        } else if (rank === 3 && images.hatBronze) {
+            rankDisplay = `<img src="${images.hatBronze.src || 'hat bronze.png'}" alt="Bronze" style="width: 30px; height: 30px; vertical-align: middle; display: inline-block;">`;
+        }
+        
         html += `
             <div class="leaderboardEntry">
-                <span class="rank">${medal}</span>
+                <span class="rank">${rankDisplay}</span>
                 <span class="name">${escapeHtml(entry.name)}</span>
                 <span class="score">${entry.score}</span>
             </div>
