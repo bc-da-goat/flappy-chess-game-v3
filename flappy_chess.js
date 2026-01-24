@@ -813,11 +813,20 @@ function playBackgroundMusic() {
             playBackgroundMusic();
         };
         
-        backgroundMusic.play().catch(err => {
-            console.warn('Could not play music:', err);
-        });
-        
-        musicPlaying = true;
+        // Try to play music
+        const playPromise = backgroundMusic.play();
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    musicPlaying = true;
+                    console.log('Music started playing');
+                })
+                .catch(err => {
+                    console.warn('Could not play music (autoplay blocked):', err);
+                    // Music will start on next user interaction
+                    musicPlaying = false;
+                });
+        }
     }
 }
 
@@ -1483,6 +1492,11 @@ function handleMouseClick(event) {
     const y = coords.y;
     
     if (gameState === 'title') {
+        // Start music on first user interaction if not already playing
+        if (!musicPlaying) {
+            playBackgroundMusic();
+        }
+        
         if (startButtonRect && 
             x >= startButtonRect.x && x <= startButtonRect.x + startButtonRect.width &&
             y >= startButtonRect.y && y <= startButtonRect.y + startButtonRect.height) {
@@ -1615,6 +1629,12 @@ function handleBackgroundShopClick(x, y) {
 
 function handleTouchStart(event) {
     event.preventDefault();
+    
+    // Start music on first user interaction if not already playing
+    if (!musicPlaying) {
+        playBackgroundMusic();
+    }
+    
     if (gameState === 'playing' && !gameOver && !paused) {
         if (player) {
             player.jump();
