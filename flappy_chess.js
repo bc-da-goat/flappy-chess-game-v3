@@ -260,8 +260,14 @@ class ChessPiece {
         this.spawnAge = 0;
         this.verticalDirection = Math.random() < 0.5 ? 1 : -1;
         
-        if (!this.horizontalSpeed) {
-            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8;
+        // Ensure horizontalSpeed is set
+        if (!this.horizontalSpeed || isNaN(this.horizontalSpeed)) {
+            this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);
+        }
+        
+        // Ensure verticalSpeed is set (default to 0 if not set)
+        if (this.verticalSpeed === undefined || isNaN(this.verticalSpeed)) {
+            this.verticalSpeed = 0;
         }
     }
     
@@ -331,10 +337,25 @@ class ChessPiece {
     update(speedMultiplier = 1.0) {
         this.spawnAge++;
         
-        // Apply speed multiplier to all movement
+        // Ensure speedMultiplier is a valid number
+        if (isNaN(speedMultiplier) || !isFinite(speedMultiplier)) {
+            speedMultiplier = 1.0;
+        }
+        
+        // Apply speed multiplier to all movement, ensure values are valid numbers
         const effectiveHorizontalSpeed = (this.horizontalSpeed || 0) * speedMultiplier;
         const effectiveVerticalSpeed = (this.verticalSpeed || 0) * speedMultiplier;
         const effectiveKnightMoveSpeed = (this.knightMoveSpeed || 0) * speedMultiplier;
+        
+        // Safety check: if any speed is NaN or invalid, use 0
+        if (isNaN(effectiveHorizontalSpeed) || !isFinite(effectiveHorizontalSpeed)) {
+            console.warn('Invalid horizontalSpeed for piece:', this.pieceType);
+            return;
+        }
+        if (isNaN(effectiveVerticalSpeed) || !isFinite(effectiveVerticalSpeed)) {
+            console.warn('Invalid verticalSpeed for piece:', this.pieceType);
+            return;
+        }
         
         const isKnight = this.pieceType === 'Knight' || 
             (this.pieceType === 'Queen' && this.queenMovementType === 'knight');
@@ -356,7 +377,12 @@ class ChessPiece {
             
             if (this.knightState === 'vertical') {
                 const distanceToTarget = Math.abs(this.knightTargetY - this.y);
-                if (distanceToTarget > effectiveKnightMoveSpeed) {
+                // Safety check: if effectiveKnightMoveSpeed is 0 or invalid, snap to target
+                if (effectiveKnightMoveSpeed <= 0 || isNaN(effectiveKnightMoveSpeed) || !isFinite(effectiveKnightMoveSpeed)) {
+                    this.y = this.knightTargetY;
+                    this.knightState = 'horizontal';
+                    this.knightTargetX = this.x - (this.horizontalJump || 60);
+                } else if (distanceToTarget > effectiveKnightMoveSpeed) {
                     if (this.y < this.knightTargetY) {
                         this.y += effectiveKnightMoveSpeed;
                     } else {
@@ -365,11 +391,28 @@ class ChessPiece {
                 } else {
                     this.y = this.knightTargetY;
                     this.knightState = 'horizontal';
-                    this.knightTargetX = this.x - this.horizontalJump;
+                    this.knightTargetX = this.x - (this.horizontalJump || 60);
                 }
             } else if (this.knightState === 'horizontal') {
                 const distanceToTarget = Math.abs(this.knightTargetX - this.x);
-                if (distanceToTarget > effectiveKnightMoveSpeed) {
+                // Safety check: if effectiveKnightMoveSpeed is 0 or invalid, snap to target
+                if (effectiveKnightMoveSpeed <= 0 || isNaN(effectiveKnightMoveSpeed) || !isFinite(effectiveKnightMoveSpeed)) {
+                    this.x = this.knightTargetX;
+                    this.knightState = 'vertical';
+                    if (this.y <= 0) {
+                        this.verticalDirection = 1;
+                    } else if (this.y >= SCREEN_HEIGHT - this.height) {
+                        this.verticalDirection = -1;
+                    } else {
+                        this.verticalDirection = Math.random() < 0.5 ? 1 : -1;
+                    }
+                    this.knightTargetY = this.y + ((this.verticalJump || 120) * this.verticalDirection);
+                    if (this.knightTargetY < 0) {
+                        this.knightTargetY = 0;
+                    } else if (this.knightTargetY > SCREEN_HEIGHT - this.height) {
+                        this.knightTargetY = SCREEN_HEIGHT - this.height;
+                    }
+                } else if (distanceToTarget > effectiveKnightMoveSpeed) {
                     if (this.x > this.knightTargetX) {
                         this.x -= effectiveKnightMoveSpeed;
                     }
@@ -383,7 +426,7 @@ class ChessPiece {
                     } else {
                         this.verticalDirection = Math.random() < 0.5 ? 1 : -1;
                     }
-                    this.knightTargetY = this.y + (this.verticalJump * this.verticalDirection);
+                    this.knightTargetY = this.y + ((this.verticalJump || 120) * this.verticalDirection);
                     if (this.knightTargetY < 0) {
                         this.knightTargetY = 0;
                     } else if (this.knightTargetY > SCREEN_HEIGHT - this.height) {
