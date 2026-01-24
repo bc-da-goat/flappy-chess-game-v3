@@ -328,8 +328,13 @@ class ChessPiece {
         }
     }
     
-    update() {
+    update(speedMultiplier = 1.0) {
         this.spawnAge++;
+        
+        // Apply speed multiplier to all movement
+        const effectiveHorizontalSpeed = (this.horizontalSpeed || 0) * speedMultiplier;
+        const effectiveVerticalSpeed = (this.verticalSpeed || 0) * speedMultiplier;
+        const effectiveKnightMoveSpeed = (this.knightMoveSpeed || 0) * speedMultiplier;
         
         const isKnight = this.pieceType === 'Knight' || 
             (this.pieceType === 'Queen' && this.queenMovementType === 'knight');
