@@ -404,26 +404,32 @@ function getPlayerRank() {
     return null;
 }
 
-// Update player skin based on leaderboard rank (overrides selected skin) or selected skin
+// Update player skin based on leaderboard rank (only overrides default skin) or selected skin
 function updatePlayerSkin() {
     const rank = getPlayerRank();
     let framesKey = 'jetpackFrames'; // Default
     
-    // Rank-based skins override selected skin
-    if (rank === 1) {
-        framesKey = 'jetpackFramesGold';
-    } else if (rank === 2) {
-        framesKey = 'jetpackFramesSilver';
-    } else if (rank === 3) {
-        framesKey = 'jetpackFramesBronze';
+    // Rank-based skins only override if default skin is selected
+    // Robot skins (tin/copper) are never overridden by rank-based skins
+    if (selectedSkin === 'default') {
+        // Only override default skin with rank-based skins
+        if (rank === 1) {
+            framesKey = 'jetpackFramesGold';
+        } else if (rank === 2) {
+            framesKey = 'jetpackFramesSilver';
+        } else if (rank === 3) {
+            framesKey = 'jetpackFramesBronze';
+        } else {
+            framesKey = 'jetpackFrames'; // Default
+        }
     } else {
-        // Use selected skin if no rank
+        // Use selected skin (robot skins are never overridden)
         if (selectedSkin === 'tin') {
             framesKey = 'jetpackFramesTin';
         } else if (selectedSkin === 'copper') {
             framesKey = 'jetpackFramesCopper';
         } else {
-            framesKey = 'jetpackFrames'; // Default
+            framesKey = 'jetpackFrames'; // Default fallback
         }
     }
     
