@@ -399,7 +399,12 @@ class JetpackMan {
     }
     
     getRect() {
-        return { x: this.x, y: this.y, width: this.width, height: this.height };
+        // Make hitbox smaller (70% of original size, centered) for more forgiving gameplay
+        const hitboxWidth = Math.floor(this.width * 0.7);
+        const hitboxHeight = Math.floor(this.height * 0.7);
+        const hitboxX = this.x + Math.floor((this.width - hitboxWidth) / 2);
+        const hitboxY = this.y + Math.floor((this.height - hitboxHeight) / 2);
+        return { x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight };
     }
 }
 
@@ -450,7 +455,7 @@ class ChessPiece {
             this.knightState = null;
             this.knightTargetY = null;
             this.knightTargetX = null;
-            this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
+            this.knightMoveSpeed = 8 * (2/3) * 0.85;  // 1/3 slower, then 15% slower
             this.verticalSpeed = 0;
             this.diagonalHorizontal = 0;
             this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
@@ -477,7 +482,7 @@ class ChessPiece {
                 this.knightState = null;
                 this.knightTargetY = null;
                 this.knightTargetX = null;
-                this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
+                this.knightMoveSpeed = 8 * (2/3) * 0.85;  // 1/3 slower, then 15% slower
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
                 this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
@@ -633,7 +638,7 @@ class ChessPiece {
                 this.knightState = null;
                 this.knightTargetY = null;
                 this.knightTargetX = null;
-                this.knightMoveSpeed = 8 * (2/3);  // 1/3 slower
+                this.knightMoveSpeed = 8 * (2/3) * 0.85;  // 1/3 slower, then 15% slower
                 this.verticalSpeed = 0;
                 this.diagonalHorizontal = 0;
                 this.horizontalSpeed = (Math.random() * (14.0 - 3.5) + 3.5) * 0.8 * (2/3);  // 1/3 slower
