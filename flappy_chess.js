@@ -977,10 +977,6 @@ function update() {
             setPlayerHighScore(score);
         }
         
-        // Show interstitial ad after game over
-        setTimeout(() => {
-            showInterstitialAd();
-        }, 500); // Small delay to let game over screen render
     }
 }
 
@@ -1432,20 +1428,17 @@ function handleKeyDown(event) {
             gameState = 'title';
             shopState = 'main';
             // Don't stop music - keep it playing
-            hideInterstitialAd();
             hideGameOverButtons();
             showLeaderboardButton();
         } else if (gameState === 'playing' && gameOver) {
             gameState = 'title';
             // Don't stop music - keep it playing
-            hideInterstitialAd();
             hideGameOverButtons();
             showLeaderboardButton();
         }
     } else if (event.key === ' ' || event.key === 'Spacebar') {
         if (gameState === 'playing') {
             if (gameOver && !showNameInput) {
-                hideInterstitialAd();
                 startGame();
             } else if (!paused && player && !showNameInput) {
                 player.jump();
@@ -1667,48 +1660,17 @@ function gameLoop(currentTime) {
 
 // Ad management
 let bannerAdInitialized = false;
-let interstitialAdInitialized = false;
 
 function initializeBannerAd() {
     if (!bannerAdInitialized) {
-        const bannerAdContainer = document.getElementById('bannerAd');
-        if (bannerAdContainer) {
-            try {
-                (adsbygoogle = window.adsbygoogle || []).push({});
-                bannerAdInitialized = true;
-            } catch (e) {
-                console.warn('Ad initialization error:', e);
-            }
+        try {
+            (adsbygoogle = window.adsbygoogle || []).push({});
+            (adsbygoogle = window.adsbygoogle || []).push({});
+            (adsbygoogle = window.adsbygoogle || []).push({});
+            bannerAdInitialized = true;
+        } catch (e) {
+            console.warn('Ad initialization error:', e);
         }
-    }
-}
-
-function initializeInterstitialAd() {
-    if (!interstitialAdInitialized) {
-        const interstitialAdContainer = document.getElementById('interstitialAd');
-        if (interstitialAdContainer) {
-            try {
-                (adsbygoogle = window.adsbygoogle || []).push({});
-                interstitialAdInitialized = true;
-            } catch (e) {
-                console.warn('Ad initialization error:', e);
-            }
-        }
-    }
-}
-
-function showInterstitialAd() {
-    const adContainer = document.getElementById('interstitialAd');
-    if (adContainer) {
-        adContainer.style.display = 'block';
-        initializeInterstitialAd();
-    }
-}
-
-function hideInterstitialAd() {
-    const adContainer = document.getElementById('interstitialAd');
-    if (adContainer) {
-        adContainer.style.display = 'none';
     }
 }
 
@@ -2023,12 +1985,6 @@ async function init() {
         lastTouchEnd = now;
     }, false);
     
-    // Setup ad close button
-    const closeAdBtn = document.getElementById('closeAd');
-    if (closeAdBtn) {
-        closeAdBtn.addEventListener('click', hideInterstitialAd);
-    }
-    
     // Setup name input modal buttons
     const submitBtn = document.getElementById('submitScoreBtn');
     const skipBtn = document.getElementById('skipScoreBtn');
@@ -2059,7 +2015,6 @@ async function init() {
     if (restartBtn) {
         restartBtn.addEventListener('click', () => {
             if (gameState === 'playing' && gameOver) {
-                hideInterstitialAd();
                 startGame();
             }
         });
@@ -2069,7 +2024,6 @@ async function init() {
             if (gameState === 'playing' && gameOver) {
                 gameState = 'title';
                 // Don't stop music - keep it playing
-                hideInterstitialAd();
                 showLeaderboardButton();
             }
         });

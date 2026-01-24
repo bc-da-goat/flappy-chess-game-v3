@@ -72,27 +72,21 @@
             margin: 10px 0;
             text-align: center;
         }
-        #interstitialAd {
+        #leftBannerAd,
+        #rightBannerAd {
             position: fixed;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateY(-50%);
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            display: none;
+            width: 160px;
+            height: 600px;
+            display: block;
         }
-        #closeAd {
-            position: absolute;
-            top: 10px;
+        #leftBannerAd {
+            left: 10px;
+        }
+        #rightBannerAd {
             right: 10px;
-            background: #ff0000;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 5px;
         }
         #privacyLink {
             position: fixed;
@@ -342,6 +336,10 @@
                 bottom: 15px;
                 right: 15px;
             }
+            #leftBannerAd,
+            #rightBannerAd {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -358,20 +356,27 @@
              data-ad-format="auto"
              data-full-width-responsive="true"></ins>
     </div>
-    
-    <div id="loading">Loading game assets...</div>
-    <canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
-    
-    <!-- Interstitial Ad (Game Over) -->
-    <div id="interstitialAd">
-        <button id="closeAd">Close</button>
+
+    <!-- Side Banner Ads -->
+    <div id="leftBannerAd">
         <ins class="adsbygoogle"
              style="display:block"
              data-ad-client="ca-pub-6014516943907647"
-             data-ad-slot="0987654321"
+             data-ad-slot="1234567890"
              data-ad-format="auto"
              data-full-width-responsive="true"></ins>
     </div>
+    <div id="rightBannerAd">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-6014516943907647"
+             data-ad-slot="1234567890"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+    </div>
+    
+    <div id="loading">Loading game assets...</div>
+    <canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
     
     <!-- Name Input Modal -->
     <div id="nameInputModal">
