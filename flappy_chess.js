@@ -74,6 +74,10 @@ let gameOver = false;
 let spawnTimer = 0;
 let spawnDelay = 90;
 
+// Coin system
+let totalCoins = 0;
+let coinsEarnedThisGame = 0;
+
 // Title screen assets
 let logo = null;
 let startButton = null;
@@ -142,6 +146,7 @@ async function loadImages() {
         hatGold: 'golden hat.png',
         hatSilver: 'silver hat.png',
         hatBronze: 'bronze hat.png',
+        coin: 'coin.png',
         // Chess pieces
         W_Pawn: 'W_Pawn.png',
         W_Rook: 'W_Rook.png',
@@ -740,6 +745,7 @@ function startGame() {
     player = new JetpackMan(100, SCREEN_HEIGHT / 2);
     chessPieces = [];
     score = 0;
+    coinsEarnedThisGame = 0;
     gameOver = false;
     paused = false;
     spawnTimer = 0;
@@ -847,6 +853,11 @@ function update() {
         gameOver = true;
         pendingScore = score;
         
+        // Calculate and award coins based on final score
+        coinsEarnedThisGame = score; // 1 coin per point
+        totalCoins += coinsEarnedThisGame;
+        saveCoins();
+        
         // Check if this is a new high score
         const currentHighScore = getPlayerHighScore();
         if (score > currentHighScore) {
@@ -890,6 +901,18 @@ function draw() {
             ctx.font = font;
             ctx.fillText(`Score: ${score}`, 10 * scaleFactor, 30 * scaleFactor);
             
+            // Display coins with coin image
+            if (images.coin) {
+                const coinSize = 30 * scaleFactor;
+                ctx.drawImage(images.coin, 10 * scaleFactor, 65 * scaleFactor, coinSize, coinSize);
+                ctx.fillStyle = '#FFD700'; // Gold color for text
+                ctx.font = font;
+                ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (65 + coinSize - 5) * scaleFactor);
+            } else {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 70 * scaleFactor);
+            }
+            
             // Draw pause button (scaled for mobile)
             const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor;
             const pauseButtonY = 10 * scaleFactor;
@@ -911,6 +934,23 @@ function draw() {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
                 
+                // Display total coins in corner (always visible, even when paused)
+                if (images.coin) {
+                    const coinSize = 30 * scaleFactor;
+                    ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
+                    ctx.fillStyle = '#FFD700'; // Gold color
+                    ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (10 + coinSize - 5) * scaleFactor);
+                    ctx.textAlign = 'center';
+                } else {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 30 * scaleFactor);
+                    ctx.textAlign = 'center';
+                }
+                
                 ctx.fillStyle = WHITE;
                 ctx.font = bigFont;
                 ctx.textAlign = 'center';
@@ -921,6 +961,23 @@ function draw() {
                 ctx.textAlign = 'left';
             }
         } else {
+            // Display total coins in corner (always visible, even on game over)
+            if (images.coin) {
+                const coinSize = 30 * scaleFactor;
+                ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
+                ctx.fillStyle = '#FFD700'; // Gold color
+                ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+                ctx.textAlign = 'left';
+                ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (10 + coinSize - 5) * scaleFactor);
+                ctx.textAlign = 'center';
+            } else {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+                ctx.textAlign = 'left';
+                ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 30 * scaleFactor);
+                ctx.textAlign = 'center';
+            }
+            
             ctx.fillStyle = RED;
             ctx.font = bigFont;
             ctx.textAlign = 'center';
@@ -930,15 +987,39 @@ function draw() {
             ctx.font = font;
             ctx.fillText(`Final Score: ${score}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 20);
             
+            // Show coins earned
+            if (coinsEarnedThisGame > 0) {
+                ctx.fillStyle = '#FFD700'; // Gold color
+                ctx.font = `${Math.round(28 * scaleFactor)}px Arial`;
+                if (images.coin) {
+                    const coinSize = 28 * scaleFactor;
+                    ctx.drawImage(images.coin, SCREEN_WIDTH / 2 - 80 * scaleFactor, SCREEN_HEIGHT / 2 - 10 * scaleFactor, coinSize, coinSize);
+                    ctx.fillText(`+${coinsEarnedThisGame} Coins!`, SCREEN_WIDTH / 2 + 10 * scaleFactor, SCREEN_HEIGHT / 2 + 15 * scaleFactor);
+                } else {
+                    ctx.fillText(`💰 +${coinsEarnedThisGame} Coins!`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 5);
+                }
+                ctx.fillStyle = '#FFD700';
+                ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+                if (images.coin) {
+                    const coinSize = 20 * scaleFactor;
+                    ctx.drawImage(images.coin, SCREEN_WIDTH / 2 - 60 * scaleFactor, SCREEN_HEIGHT / 2 + 20 * scaleFactor, coinSize, coinSize);
+                    ctx.fillText(`Total: ${totalCoins}`, SCREEN_WIDTH / 2 + 10 * scaleFactor, SCREEN_HEIGHT / 2 + 40 * scaleFactor);
+                } else {
+                    ctx.fillText(`Total: ${totalCoins} Coins`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 35 * scaleFactor);
+                }
+                ctx.font = font;
+            }
+            
             // Show high score comparison
             const highScore = getPlayerHighScore();
             if (score > highScore) {
                 ctx.fillStyle = '#4CAF50';
-                ctx.fillText('NEW HIGH SCORE!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+                ctx.font = font;
+                ctx.fillText('NEW HIGH SCORE!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + (coinsEarnedThisGame > 0 ? 65 : 20) * scaleFactor);
             } else if (highScore > 0) {
                 ctx.fillStyle = '#888';
                 ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
-                ctx.fillText(`Personal Best: ${highScore}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20 * scaleFactor);
+                ctx.fillText(`Personal Best: ${highScore}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + (coinsEarnedThisGame > 0 ? 65 : 20) * scaleFactor);
                 ctx.font = font;
             }
             
@@ -952,7 +1033,8 @@ function draw() {
                     // Still show text for desktop users who might be on mobile browser
                     ctx.fillStyle = WHITE;
                     ctx.font = `${Math.round(18 * scaleFactor)}px Arial`;
-                    ctx.fillText('Use buttons below', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
+                    const offsetY = coinsEarnedThisGame > 0 ? 100 : 60;
+                    ctx.fillText('Use buttons below', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + offsetY * scaleFactor);
                 } else {
                     // Hide mobile buttons on desktop
                     const gameOverButtons = document.getElementById('gameOverButtons');
@@ -960,8 +1042,9 @@ function draw() {
                         gameOverButtons.style.display = 'none';
                     }
                     ctx.fillStyle = WHITE;
-                    ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60 * scaleFactor);
-                    ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100 * scaleFactor);
+                    const offsetY = coinsEarnedThisGame > 0 ? 100 : 60;
+                    ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + offsetY * scaleFactor);
+                    ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + (offsetY + 40) * scaleFactor);
                 }
             } else {
                 // Hide buttons when name input is showing
@@ -983,6 +1066,22 @@ function drawTitleScreen() {
     if (logo) {
         ctx.drawImage(logo, 10, 10);
     }
+    
+    // Display total coins on title screen (always visible in corner)
+    if (images.coin) {
+        const coinSize = 30 * scaleFactor;
+        ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
+        ctx.fillStyle = '#FFD700'; // Gold color
+        ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (10 + coinSize - 5) * scaleFactor);
+    } else {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 30 * scaleFactor);
+    }
+    ctx.textAlign = 'center';
     
     ctx.fillStyle = WHITE;
     ctx.font = bigFont;
@@ -1024,6 +1123,23 @@ function drawShopScreen() {
     
     if (logo) {
         ctx.drawImage(logo, 10, 10);
+    }
+    
+    // Display total coins on shop screen (always visible in corner)
+    if (images.coin) {
+        const coinSize = 30 * scaleFactor;
+        ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
+        ctx.fillStyle = '#FFD700'; // Gold color
+        ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (10 + coinSize - 5) * scaleFactor);
+        ctx.textAlign = 'center';
+    } else {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 30 * scaleFactor);
+        ctx.textAlign = 'center';
     }
     
     ctx.fillStyle = WHITE;
@@ -1234,6 +1350,21 @@ function setPlayerHighScore(score) {
     localStorage.setItem('flappyChessHighScore', score.toString());
 }
 
+// Coin system functions
+function loadCoins() {
+    const savedCoins = localStorage.getItem('flappyChessCoins');
+    totalCoins = savedCoins ? parseInt(savedCoins, 10) : 0;
+}
+
+function saveCoins() {
+    localStorage.setItem('flappyChessCoins', totalCoins.toString());
+}
+
+function addCoins(amount) {
+    totalCoins += amount;
+    saveCoins();
+}
+
 function showNameInputModal() {
     if (!database) {
         console.warn('Firebase not initialized, skipping leaderboard');
@@ -1438,6 +1569,9 @@ async function init() {
     
     await loadImages();
     loadAudio();
+    
+    // Load coins from localStorage
+    loadCoins();
     
     // Add event listeners
     canvas.addEventListener('click', handleMouseClick);
