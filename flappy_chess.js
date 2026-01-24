@@ -376,9 +376,10 @@ async function loadImages() {
     if (images.jetpackFlyTin) {
         processJetpackFrames(images.jetpackFlyTin, 'tin', 4);
     }
-    if (images.jetpackFlyCopper) {
-        processJetpackFrames(images.jetpackFlyCopper, 'copper', 3);
-    }
+    // Copper robot temporarily disabled due to frame issues
+    // if (images.jetpackFlyCopper) {
+    //     processJetpackFrames(images.jetpackFlyCopper, 'copper', 3);
+    // }
     
     // New skins - process all (defaulting to 4 frames, can be adjusted per skin)
     // Skins with 3 frames side-by-side: copper, pirate, longHair, arcticResearcher, merchant, rareIceMonster, legendaryCyborg, legendarySamurai
@@ -522,7 +523,7 @@ function updatePlayerSkin() {
     let framesKey = 'jetpackFrames'; // Default
     
     // Rank-based skins only override if default skin is selected
-    // Robot skins (tin/copper) are never overridden by rank-based skins
+    // Robot skins (tin) are never overridden by rank-based skins
     if (selectedSkin === 'default') {
         // Only override default skin with rank-based skins
         if (rank === 1) {
@@ -539,7 +540,6 @@ function updatePlayerSkin() {
         // Map all skin IDs to their frame keys
         const skinFrameMap = {
             'tin': 'jetpackFramesTin',
-            'copper': 'jetpackFramesCopper',
             'arcticResearcher': 'jetpackFramesArcticResearcher',
             'legendaryCrazedRobot': 'jetpackFramesLegendaryCrazedRobot',
             'legendaryCyborg': 'jetpackFramesLegendaryCyborg',
@@ -1304,10 +1304,17 @@ function draw() {
 function drawTitleScreen() {
     // Use selected background
     let currentBg = background;
-    if (selectedBackground === 'marshland' && images.backgroundMarshland) {
-        currentBg = images.backgroundMarshland;
-    } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
-        currentBg = images.backgroundMountain;
+    const bgMap = {
+        'marshland': images.backgroundMarshland,
+        'mountain': images.backgroundMountain,
+        'steampunkArctic': images.backgroundSteampunkArctic,
+        'steampunkJapan': images.backgroundSteampunkJapan,
+        'steampunkJungle': images.backgroundSteampunkJungle,
+        'steampunkTradingHub': images.backgroundSteampunkTradingHub,
+        'steampunkWaterworld': images.backgroundSteampunkWaterworld
+    };
+    if (selectedBackground !== 'default' && bgMap[selectedBackground]) {
+        currentBg = bgMap[selectedBackground];
     }
     if (currentBg) {
         ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1440,7 +1447,6 @@ function drawSkinsShop() {
     const skins = [
         { id: 'default', name: 'Default', thumbnail: images.thumbnailDefault, price: 0 },
         { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 0 },
-        { id: 'copper', name: 'Copper Robot', thumbnail: images.thumbnailCopper, price: 0 },
         { id: 'arcticResearcher', name: 'Arctic Researcher', thumbnail: images.thumbnailArcticResearcher, price: 0 },
         { id: 'legendaryCrazedRobot', name: 'Crazed Robot', thumbnail: images.thumbnailLegendaryCrazedRobot, price: 0 },
         { id: 'legendaryCyborg', name: 'Cyborg', thumbnail: images.thumbnailLegendaryCyborg, price: 0 },
@@ -1705,7 +1711,6 @@ function handleSkinShopClick(x, y) {
     const skins = [
         { id: 'default', price: 0 },
         { id: 'tin', price: 0 },
-        { id: 'copper', price: 0 },
         { id: 'arcticResearcher', price: 0 },
         { id: 'legendaryCrazedRobot', price: 0 },
         { id: 'legendaryCyborg', price: 0 },
