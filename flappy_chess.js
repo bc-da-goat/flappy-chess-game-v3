@@ -424,7 +424,9 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
     
     if (frameCount === 3) {
         // 3 frames side by side
-        const frameWidth = spriteSheet.width / 3;
+        // Calculate frame width, ensuring we use all pixels
+        const totalWidth = spriteSheet.width;
+        const frameWidth = Math.floor(totalWidth / 3);
         const frameHeight = spriteSheet.height;
         
         for (let col = 0; col < 3; col++) {
@@ -440,11 +442,18 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
             frameCtx.imageSmoothingEnabled = true;
             frameCtx.imageSmoothingQuality = 'high';
             
+            // Calculate source coordinates as integers
+            const sourceX = col * frameWidth;
+            const sourceY = 0;
+            // For the last frame, use remaining width to avoid cutting off pixels
+            const sourceWidth = (col === 2) ? (totalWidth - sourceX) : frameWidth;
+            const sourceHeight = frameHeight;
+            
             // Draw the frame with transparency preserved
             frameCtx.drawImage(
                 spriteSheet,
-                col * frameWidth, 0,
-                frameWidth, frameHeight,
+                sourceX, sourceY,
+                sourceWidth, sourceHeight,
                 0, 0,
                 frameWidth, frameHeight
             );
@@ -453,8 +462,11 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
         }
     } else {
         // 4 frames in 2x2 grid (default)
-        const frameWidth = spriteSheet.width / 2;
-        const frameHeight = spriteSheet.height / 2;
+        // Calculate frame dimensions, ensuring we use all pixels
+        const totalWidth = spriteSheet.width;
+        const totalHeight = spriteSheet.height;
+        const frameWidth = Math.floor(totalWidth / 2);
+        const frameHeight = Math.floor(totalHeight / 2);
         
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 2; col++) {
@@ -466,15 +478,21 @@ function processJetpackFrames(spriteSheet, skinType = 'default', frameCount = 4)
                 // Clear canvas to ensure transparency
                 frameCtx.clearRect(0, 0, frameWidth, frameHeight);
                 
-                // Enable image smoothing for better quality
-                frameCtx.imageSmoothingEnabled = true;
-                frameCtx.imageSmoothingQuality = 'high';
+                // Disable image smoothing to preserve pixel-perfect rendering
+                frameCtx.imageSmoothingEnabled = false;
+                
+                // Calculate source coordinates as integers
+                const sourceX = col * frameWidth;
+                const sourceY = row * frameHeight;
+                // For edge frames, use remaining width/height to avoid cutting off pixels
+                const sourceWidth = (col === 1) ? (totalWidth - sourceX) : frameWidth;
+                const sourceHeight = (row === 1) ? (totalHeight - sourceY) : frameHeight;
                 
                 // Draw the frame with transparency preserved
                 frameCtx.drawImage(
                     spriteSheet,
-                    col * frameWidth, row * frameHeight,
-                    frameWidth, frameHeight,
+                    sourceX, sourceY,
+                    sourceWidth, sourceHeight,
                     0, 0,
                     frameWidth, frameHeight
                 );
