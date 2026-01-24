@@ -285,6 +285,15 @@ function processJetpackFrames(spriteSheet, skinType = 'default') {
             frameCanvas.width = frameWidth;
             frameCanvas.height = frameHeight;
             const frameCtx = frameCanvas.getContext('2d');
+            
+            // Clear canvas to ensure transparency
+            frameCtx.clearRect(0, 0, frameWidth, frameHeight);
+            
+            // Enable image smoothing for better quality
+            frameCtx.imageSmoothingEnabled = true;
+            frameCtx.imageSmoothingQuality = 'high';
+            
+            // Draw the frame with transparency preserved
             frameCtx.drawImage(
                 spriteSheet,
                 col * frameWidth, row * frameHeight,
@@ -292,6 +301,7 @@ function processJetpackFrames(spriteSheet, skinType = 'default') {
                 0, 0,
                 frameWidth, frameHeight
             );
+            
             images[framesKey].push(frameCanvas);
         }
     }
@@ -377,7 +387,14 @@ class JetpackMan {
     
     draw(ctx) {
         if (this.frames[this.currentFrame]) {
+            // Save context state
+            ctx.save();
+            // Ensure transparency is preserved
+            ctx.globalCompositeOperation = 'source-over';
+            // Draw the frame (transparency should be preserved automatically)
             ctx.drawImage(this.frames[this.currentFrame], this.x, this.y, this.width, this.height);
+            // Restore context state
+            ctx.restore();
         }
     }
     
