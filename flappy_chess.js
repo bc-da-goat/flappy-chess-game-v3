@@ -685,10 +685,18 @@ function update() {
     if (checkCollisions()) {
         gameOver = true;
         pendingScore = score;
-        // Show name input modal after a short delay
-        setTimeout(() => {
-            showNameInputModal();
-        }, 1000); // Delay to let game over screen render
+        
+        // Check if this is a new high score
+        const currentHighScore = getPlayerHighScore();
+        if (score > currentHighScore) {
+            // New high score! Show name input modal after a short delay
+            setTimeout(() => {
+                showNameInputModal();
+            }, 1000); // Delay to let game over screen render
+            // Update high score in localStorage
+            setPlayerHighScore(score);
+        }
+        
         // Show interstitial ad after game over
         setTimeout(() => {
             showInterstitialAd();
@@ -760,9 +768,23 @@ function draw() {
             ctx.fillStyle = WHITE;
             ctx.font = font;
             ctx.fillText(`Final Score: ${score}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 20);
+            
+            // Show high score comparison
+            const highScore = getPlayerHighScore();
+            if (score > highScore) {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText('NEW HIGH SCORE!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+            } else if (highScore > 0) {
+                ctx.fillStyle = '#888';
+                ctx.font = '24px Arial';
+                ctx.fillText(`Personal Best: ${highScore}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20);
+                ctx.font = font;
+            }
+            
             if (!showNameInput) {
-                ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40);
-                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 80);
+                ctx.fillStyle = WHITE;
+                ctx.fillText('Press SPACE to restart', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60);
+                ctx.fillText('Press ESC to return to menu', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 100);
             }
             ctx.textAlign = 'left';
         }
@@ -970,6 +992,15 @@ function hideInterstitialAd() {
 }
 
 // Leaderboard Functions
+function getPlayerHighScore() {
+    const highScore = localStorage.getItem('flappyChessHighScore');
+    return highScore ? parseInt(highScore, 10) : 0;
+}
+
+function setPlayerHighScore(score) {
+    localStorage.setItem('flappyChessHighScore', score.toString());
+}
+
 function showNameInputModal() {
     if (!database) {
         console.warn('Firebase not initialized, skipping leaderboard');
@@ -1046,6 +1077,11 @@ function submitScore() {
             console.error('Error submitting score:', error);
             alert('Failed to submit score. Please try again.');
         });
+}
+
+function skipScoreSubmission() {
+    // High score is already updated, just hide the modal
+    hideNameInputModal();
 }
 
 function loadLeaderboard() {
@@ -1155,9 +1191,7 @@ async function init() {
         submitBtn.addEventListener('click', submitScore);
     }
     if (skipBtn) {
-        skipBtn.addEventListener('click', () => {
-            hideNameInputModal();
-        });
+        skipBtn.addEventListener('click', skipScoreSubmission);
     }
     
     // Setup leaderboard modal
