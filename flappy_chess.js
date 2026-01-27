@@ -145,6 +145,17 @@ function calculateScreenDimensions() {
         canvas.style.width = SCREEN_WIDTH + 'px';
         canvas.style.height = SCREEN_HEIGHT + 'px';
     }
+    
+    // Update back button position (bottom left)
+    if (backButtonRect) {
+        if (backButton) {
+            // Image-based button
+            backButtonRect.y = SCREEN_HEIGHT - backButtonRect.height - 10 * scaleFactor;
+        } else {
+            // Text-based button
+            backButtonRect.y = SCREEN_HEIGHT - 40 * scaleFactor - 10 * scaleFactor;
+        }
+    }
 }
 
 // Load all images
@@ -367,7 +378,7 @@ async function loadImages() {
         backButton = btnCanvas;
         backButtonRect = {
             x: 10 * scaleFactor,
-            y: 10 * scaleFactor,
+            y: SCREEN_HEIGHT - buttonHeight - 10 * scaleFactor,
             width: buttonWidth,
             height: buttonHeight
         };
@@ -375,7 +386,7 @@ async function loadImages() {
         // Fallback to text-based button
         backButtonRect = {
             x: 10 * scaleFactor,
-            y: 10 * scaleFactor,
+            y: SCREEN_HEIGHT - 40 * scaleFactor - 10 * scaleFactor,
             width: 100 * scaleFactor,
             height: 40 * scaleFactor
         };
@@ -1342,8 +1353,9 @@ function drawTitleScreen() {
         ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
+    // Draw logo in bottom right corner
     if (logo) {
-        ctx.drawImage(logo, 10, 10);
+        ctx.drawImage(logo, SCREEN_WIDTH - logo.width - 10, SCREEN_HEIGHT - logo.height - 10);
     }
     
     // Display total coins on title screen (always visible in corner)
@@ -1404,8 +1416,9 @@ function drawShopScreen() {
         ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
+    // Draw logo in bottom right corner
     if (logo) {
-        ctx.drawImage(logo, 10, 10);
+        ctx.drawImage(logo, SCREEN_WIDTH - logo.width - 10, SCREEN_HEIGHT - logo.height - 10);
     }
     
     // Display total coins on shop screen (positioned to avoid back button)
