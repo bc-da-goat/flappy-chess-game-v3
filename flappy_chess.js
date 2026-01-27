@@ -92,6 +92,7 @@ let skinsShopButton = null;
 let skinsShopButtonRect = null;
 let backgroundsShopButton = null;
 let backgroundsShopButtonRect = null;
+let backButton = null;
 let backButtonRect = null;
 
 // Shop data
@@ -150,9 +151,11 @@ function calculateScreenDimensions() {
 async function loadImages() {
     const imageFiles = {
         background: 'Background.png',
+        shopBackground: 'shop screen background.png',
         logo: 'citadell games logo.png',
         startButton: 'start game button.png',
         shopButton: 'shop button.png',
+        backButton: 'back button.png',
         skinsShopButton: 'skins item shop button.png',
         backgroundsShopButton: 'background item shop button.png',
         jetpackFly: 'jetpack fly rough.png',
@@ -351,13 +354,32 @@ async function loadImages() {
         };
     }
     
-    // Back button rect (text-based, no image)
-    backButtonRect = {
-        x: 10 * scaleFactor,
-        y: 10 * scaleFactor,
-        width: 100 * scaleFactor,
-        height: 40 * scaleFactor
-    };
+    // Process back button
+    if (images.backButton) {
+        const btn = images.backButton;
+        const buttonWidth = 120 * scaleFactor;
+        const buttonHeight = (btn.height * buttonWidth) / btn.width;
+        const btnCanvas = document.createElement('canvas');
+        btnCanvas.width = buttonWidth;
+        btnCanvas.height = buttonHeight;
+        const btnCtx = btnCanvas.getContext('2d');
+        btnCtx.drawImage(btn, 0, 0, buttonWidth, buttonHeight);
+        backButton = btnCanvas;
+        backButtonRect = {
+            x: 10 * scaleFactor,
+            y: 10 * scaleFactor,
+            width: buttonWidth,
+            height: buttonHeight
+        };
+    } else {
+        // Fallback to text-based button
+        backButtonRect = {
+            x: 10 * scaleFactor,
+            y: 10 * scaleFactor,
+            width: 100 * scaleFactor,
+            height: 40 * scaleFactor
+        };
+    }
     
     // Process jetpack animation frames for all skins
     // Default, Gold, Silver, Bronze, Tin, Copper are 4-frame (2x2 grid)
@@ -1374,7 +1396,11 @@ function drawTitleScreen() {
 }
 
 function drawShopScreen() {
-    if (background) {
+    // Use shop background
+    if (images.shopBackground) {
+        ctx.drawImage(images.shopBackground, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else if (background) {
+        // Fallback to default background if shop background not loaded
         ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
@@ -1382,41 +1408,34 @@ function drawShopScreen() {
         ctx.drawImage(logo, 10, 10);
     }
     
-    // Display total coins on shop screen (always visible in corner)
+    // Display total coins on shop screen (positioned to avoid back button)
     if (images.coin) {
         const coinSize = 30 * scaleFactor;
-        ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
+        const coinX = SCREEN_WIDTH - (10 + coinSize + 60) * scaleFactor; // Right side, accounting for text
+        const coinY = 10 * scaleFactor;
+        ctx.drawImage(images.coin, coinX, coinY, coinSize, coinSize);
         ctx.fillStyle = '#FFD700'; // Gold color
         ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
         ctx.textAlign = 'left';
-        ctx.fillText(`${totalCoins}`, (10 + coinSize + 5) * scaleFactor, (10 + coinSize - 5) * scaleFactor);
+        ctx.fillText(`${totalCoins}`, coinX + coinSize + 5 * scaleFactor, coinY + coinSize - 5 * scaleFactor);
         ctx.textAlign = 'center';
     } else {
         ctx.fillStyle = '#FFD700';
         ctx.font = `${Math.round(24 * scaleFactor)}px Arial`;
-        ctx.textAlign = 'left';
-        ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 30 * scaleFactor);
+        ctx.textAlign = 'right';
+        ctx.fillText(`💰 ${totalCoins}`, SCREEN_WIDTH - 10 * scaleFactor, 30 * scaleFactor);
         ctx.textAlign = 'center';
     }
     
     ctx.fillStyle = WHITE;
     ctx.font = bigFont;
     ctx.textAlign = 'center';
-    // Use selected background
-    let currentBg = background;
-    if (selectedBackground === 'marshland' && images.backgroundMarshland) {
-        currentBg = images.backgroundMarshland;
-    } else if (selectedBackground === 'mountain' && images.backgroundMountain) {
-        currentBg = images.backgroundMountain;
-    }
     
-    if (currentBg) {
-        ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-        ctx.drawImage(currentBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    }
-    
-    // Draw back button (except on main shop screen)
-    if (shopState !== 'main') {
+    // Draw back button on all shop screens
+    if (backButton && backButtonRect) {
+        ctx.drawImage(backButton, backButtonRect.x, backButtonRect.y);
+    } else if (backButtonRect) {
+        // Fallback to text if image not loaded
         ctx.fillStyle = '#888';
         ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
         ctx.textAlign = 'left';
@@ -1658,8 +1677,20 @@ function handleMouseClick(event) {
             shopState = 'main';
         }
     } else if (gameState === 'shop') {
+        // Handle back button (works on all shop screens)
+        if (backButtonRect &&
+            x >= backButtonRect.x && x <= backButtonRect.x + backButtonRect.width &&
+            y >= backButtonRect.y && y <= backButtonRect.y + backButtonRect.height) {
+            if (shopState === 'main') {
+                // Exit shop and return to title screen
+                gameState = 'title';
+            } else {
+                // Go back to main shop screen
+                shopState = 'main';
+            }
+        }
         // Handle shop navigation
-        if (shopState === 'main') {
+        else if (shopState === 'main') {
             // Check skins button
             if (skinsShopButtonRect &&
                 x >= skinsShopButtonRect.x && x <= skinsShopButtonRect.x + skinsShopButtonRect.width &&
@@ -1673,14 +1704,8 @@ function handleMouseClick(event) {
                 shopState = 'backgrounds';
             }
         } else {
-            // Handle back button
-            if (backButtonRect &&
-                x >= backButtonRect.x && x <= backButtonRect.x + backButtonRect.width &&
-                y >= backButtonRect.y && y <= backButtonRect.y + backButtonRect.height) {
-                shopState = 'main';
-            }
             // Handle shop item clicks
-            else if (shopState === 'skins') {
+            if (shopState === 'skins') {
                 handleSkinShopClick(x, y);
             } else if (shopState === 'backgrounds') {
                 handleBackgroundShopClick(x, y);
