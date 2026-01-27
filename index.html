@@ -12,13 +12,13 @@
      crossorigin="anonymous"></script>
 
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FQ7FNNDXHB"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TB8P97NE7J"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-FQ7FNNDXHB');
+      gtag('config', 'G-TB8P97NE7J');
     </script>
     
     <!-- Firebase SDK -->
@@ -88,18 +88,16 @@
         #rightBannerAd {
             right: 10px;
         }
-        #privacyLink {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
+        #privacyLink, #aboutLink {
             color: #888;
             font-size: 12px;
             text-decoration: none;
             padding: 5px 10px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 5px;
+            display: block;
         }
-        #privacyLink:hover {
+        #privacyLink:hover, #aboutLink:hover {
             color: #fff;
             background: rgba(0, 0, 0, 0.7);
         }
@@ -330,11 +328,9 @@
                 bottom: 15px;
                 left: 15px;
             }
-            #privacyLink {
+            #privacyLink, #aboutLink {
                 font-size: 10px;
                 padding: 8px;
-                bottom: 15px;
-                right: 15px;
             }
             #leftBannerAd,
             #rightBannerAd {
@@ -344,10 +340,14 @@
     </style>
 </head>
 <body>
-    <!-- Privacy Policy Link -->
-    <a href="privacy-policy.html" id="privacyLink" target="_blank">Privacy Policy</a>
+    <!-- Privacy Policy and About Links -->
+    <div style="position: fixed; bottom: 10px; right: 10px; z-index: 100; display: flex; gap: 10px; flex-direction: column; align-items: flex-end;">
+        <a href="about.html" id="aboutLink" target="_blank" style="color: #888; font-size: 12px; text-decoration: none; padding: 5px 10px; background: rgba(0, 0, 0, 0.5); border-radius: 5px;">About</a>
+        <a href="privacy-policy.html" id="privacyLink" target="_blank" style="color: #888; font-size: 12px; text-decoration: none; padding: 5px 10px; background: rgba(0, 0, 0, 0.5); border-radius: 5px;">Privacy Policy</a>
+    </div>
     
     <!-- Banner Ad (Title Screen) -->
+    <!-- TODO: Replace "1234567890" with your actual AdSense ad slot ID after approval -->
     <div id="bannerAd" style="display: none;">
         <ins class="adsbygoogle"
              style="display:block"
@@ -358,6 +358,7 @@
     </div>
 
     <!-- Side Banner Ads -->
+    <!-- TODO: Replace "1234567890" with your actual AdSense ad slot IDs after approval -->
     <div id="leftBannerAd">
         <ins class="adsbygoogle"
              style="display:block"

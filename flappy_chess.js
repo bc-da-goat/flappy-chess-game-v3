@@ -997,8 +997,40 @@ function stopBackgroundMusic() {
     musicSpeed = 1.0; // Reset speed
 }
 
+// Google Analytics tracking
+function trackEvent(eventName, eventParams = {}) {
+    if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, eventParams);
+    }
+}
+
+function trackSessionStart() {
+    // Check if this is a returning user
+    const hasVisitedBefore = localStorage.getItem('flappyChessHasVisited');
+    const isReturningUser = hasVisitedBefore === 'true';
+    
+    if (!hasVisitedBefore) {
+        // First time visitor
+        localStorage.setItem('flappyChessHasVisited', 'true');
+        trackEvent('first_visit');
+    } else {
+        // Returning user
+        trackEvent('returning_visit');
+    }
+    
+    // Track session start
+    trackEvent('session_start', {
+        is_returning_user: isReturningUser
+    });
+}
+
 // Game functions
 function startGame() {
+    // Track game start
+    trackEvent('game_start', {
+        game_state: 'new_game'
+    });
+    
     // Update player skin before creating player
     updatePlayerSkin();
     
@@ -1013,6 +1045,10 @@ function startGame() {
     showNameInput = false;
     hideLeaderboardButton();
     hideGameOverButtons();
+    
+    // Track game session start time
+    window.gameSessionStartTime = Date.now();
+    
     // Don't reset music timer, speed, or index - keep music playing
     
     // Load leaderboard to check for rank-based skin (will override if needed)
@@ -1123,6 +1159,18 @@ function update() {
         coinsEarnedThisGame = score; // 1 coin per point
         totalCoins += coinsEarnedThisGame;
         saveCoins();
+        
+        // Track game over with metrics
+        const gameSessionDuration = window.gameSessionStartTime ? 
+            Math.round((Date.now() - window.gameSessionStartTime) / 1000) : 0; // Duration in seconds
+        
+        trackEvent('game_over', {
+            score: score,
+            coins_earned: coinsEarnedThisGame,
+            total_coins: totalCoins,
+            session_duration: gameSessionDuration,
+            is_new_high_score: score > getPlayerHighScore()
+        });
         
         // Check if this is a new high score
         const currentHighScore = getPlayerHighScore();
@@ -1688,6 +1736,10 @@ function handleMouseClick(event) {
             y >= shopButtonRect.y && y <= shopButtonRect.y + shopButtonRect.height) {
             gameState = 'shop';
             shopState = 'main';
+            // Track shop visit
+            trackEvent('shop_visit', {
+                shop_section: 'main'
+            });
         }
     } else if (gameState === 'shop') {
         // Handle back button (works on all shop screens)
@@ -1697,9 +1749,13 @@ function handleMouseClick(event) {
             if (shopState === 'main') {
                 // Exit shop and return to title screen
                 gameState = 'title';
+                trackEvent('shop_exit');
             } else {
                 // Go back to main shop screen
                 shopState = 'main';
+                trackEvent('shop_navigation', {
+                    action: 'back_to_main'
+                });
             }
         }
         // Handle shop navigation
@@ -1709,12 +1765,18 @@ function handleMouseClick(event) {
                 x >= skinsShopButtonRect.x && x <= skinsShopButtonRect.x + skinsShopButtonRect.width &&
                 y >= skinsShopButtonRect.y && y <= skinsShopButtonRect.y + skinsShopButtonRect.height) {
                 shopState = 'skins';
+                trackEvent('shop_navigation', {
+                    action: 'enter_skins_shop'
+                });
             }
             // Check backgrounds button
             else if (backgroundsShopButtonRect &&
                 x >= backgroundsShopButtonRect.x && x <= backgroundsShopButtonRect.x + backgroundsShopButtonRect.width &&
                 y >= backgroundsShopButtonRect.y && y <= backgroundsShopButtonRect.y + backgroundsShopButtonRect.height) {
                 shopState = 'backgrounds';
+                trackEvent('shop_navigation', {
+                    action: 'enter_backgrounds_shop'
+                });
             }
         } else {
             // Handle shop item clicks
@@ -2113,6 +2175,9 @@ function escapeHtml(text) {
 }
 
 function showLeaderboard() {
+    // Track leaderboard view
+    trackEvent('leaderboard_view');
+    
     const modal = document.getElementById('leaderboardModal');
     if (modal) {
         loadLeaderboard();
@@ -2169,6 +2234,9 @@ async function init() {
     
     // Load shop data from localStorage
     loadShopData();
+    
+    // Track session start (after page loads)
+    trackSessionStart();
     
     // Add event listeners
     canvas.addEventListener('click', handleMouseClick);
