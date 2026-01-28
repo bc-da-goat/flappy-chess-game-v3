@@ -68,6 +68,10 @@ const musicSwitchInterval = 90 * 60; // 90 seconds in frames (at 60 FPS)
 let musicSpeed = 1.0; // Playback speed multiplier
 let musicEnabled = true; // Music toggle state
 
+// Session tracking
+let gamesPlayedThisSession = 0;
+let sessionStartTime = Date.now();
+
 // Game objects
 let player = null;
 let chessPieces = [];
@@ -1080,6 +1084,10 @@ function trackEvent(eventName, eventParams = {}) {
 }
 
 function trackSessionStart() {
+    // Reset session tracking
+    gamesPlayedThisSession = 0;
+    sessionStartTime = Date.now();
+    
     // Check if this is a returning user
     const hasVisitedBefore = localStorage.getItem('flappyChessHasVisited');
     const isReturningUser = hasVisitedBefore === 'true';
@@ -1099,11 +1107,25 @@ function trackSessionStart() {
     });
 }
 
+function trackSessionEnd() {
+    const sessionDuration = Math.round((Date.now() - sessionStartTime) / 1000); // Duration in seconds
+    
+    trackEvent('session_end', {
+        games_played: gamesPlayedThisSession,
+        session_duration: sessionDuration,
+        average_game_duration: gamesPlayedThisSession > 0 ? Math.round(sessionDuration / gamesPlayedThisSession) : 0
+    });
+}
+
 // Game functions
 function startGame() {
+    // Increment games played counter
+    gamesPlayedThisSession++;
+    
     // Track game start
     trackEvent('game_start', {
-        game_state: 'new_game'
+        game_state: 'new_game',
+        games_played_this_session: gamesPlayedThisSession
     });
     
     // Update player skin before creating player
@@ -1239,11 +1261,15 @@ function update() {
         const gameSessionDuration = window.gameSessionStartTime ? 
             Math.round((Date.now() - window.gameSessionStartTime) / 1000) : 0; // Duration in seconds
         
+        const totalSessionDuration = Math.round((Date.now() - sessionStartTime) / 1000); // Total session duration
+        
         trackEvent('game_over', {
             score: score,
             coins_earned: coinsEarnedThisGame,
             total_coins: totalCoins,
-            session_duration: gameSessionDuration,
+            game_duration: gameSessionDuration,
+            session_duration: totalSessionDuration,
+            games_played_this_session: gamesPlayedThisSession,
             is_new_high_score: score > getPlayerHighScore()
         });
         
@@ -1516,8 +1542,9 @@ function drawTitleScreen() {
     
     // Show leaderboard hint
     ctx.fillStyle = WHITE;
-    ctx.font = '20px Arial';
-    ctx.fillText('Press L to view Leaderboard', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 150);
+    ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Press L to view Leaderboard', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 150 * scaleFactor);
     
     ctx.textAlign = 'left';
     
@@ -2329,6 +2356,21 @@ async function init() {
     
     // Track session start (after page loads)
     trackSessionStart();
+    
+    // Track session end when page unloads
+    window.addEventListener('beforeunload', () => {
+        trackSessionEnd();
+    });
+    
+    // Track session end when page becomes hidden (mobile tab switching, etc.)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            trackSessionEnd();
+        } else {
+            // Session resumed - start new session tracking
+            trackSessionStart();
+        }
+    });
     
     // Add event listeners
     canvas.addEventListener('click', handleMouseClick);
