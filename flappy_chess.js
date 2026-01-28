@@ -66,6 +66,7 @@ let musicPlaying = false;
 let musicTimer = 0;
 const musicSwitchInterval = 90 * 60; // 90 seconds in frames (at 60 FPS)
 let musicSpeed = 1.0; // Playback speed multiplier
+let musicEnabled = true; // Music toggle state
 
 // Game objects
 let player = null;
@@ -946,6 +947,10 @@ function loadAudio() {
 }
 
 function playBackgroundMusic() {
+    if (!musicEnabled) {
+        return; // Don't play if music is disabled
+    }
+    
     if (musicFiles.length > 0) {
         if (backgroundMusic) {
             backgroundMusic.pause();
@@ -964,10 +969,12 @@ function playBackgroundMusic() {
         
         // Continue playing music in sequence
         backgroundMusic.onended = () => {
-            // Continue playing music regardless of game state
-            currentMusicIndex = (currentMusicIndex + 1) % musicFiles.length;
-            musicTimer = 0; // Reset timer
-            playBackgroundMusic();
+            // Continue playing music regardless of game state (only if enabled)
+            if (musicEnabled) {
+                currentMusicIndex = (currentMusicIndex + 1) % musicFiles.length;
+                musicTimer = 0; // Reset timer
+                playBackgroundMusic();
+            }
         };
         
         // Try to play music
@@ -995,6 +1002,74 @@ function stopBackgroundMusic() {
     musicPlaying = false;
     musicTimer = 0;
     musicSpeed = 1.0; // Reset speed
+}
+
+// Music toggle functions
+function loadMusicPreference() {
+    const saved = localStorage.getItem('flappyChessMusicEnabled');
+    if (saved !== null) {
+        musicEnabled = saved === 'true';
+    }
+}
+
+function saveMusicPreference() {
+    localStorage.setItem('flappyChessMusicEnabled', musicEnabled.toString());
+}
+
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    saveMusicPreference();
+    
+    if (musicEnabled) {
+        // Start music if it's not already playing
+        if (!musicPlaying) {
+            playBackgroundMusic();
+        }
+    } else {
+        // Stop music
+        stopBackgroundMusic();
+    }
+    
+    // Track music toggle event
+    if (typeof trackEvent !== 'undefined') {
+        trackEvent('music_toggle', {
+            music_enabled: musicEnabled
+        });
+    }
+}
+
+// Draw music button on all screens
+function drawMusicButton() {
+    const buttonSize = 35 * scaleFactor;
+    const buttonX = SCREEN_WIDTH - buttonSize - 10 * scaleFactor;
+    const buttonY = 10 * scaleFactor;
+    
+    // Draw button background
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
+    ctx.fillRect(buttonX, buttonY, buttonSize, buttonSize);
+    ctx.strokeStyle = WHITE;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(buttonX, buttonY, buttonSize, buttonSize);
+    
+    // Draw music icon (🎵 when on, 🔇 when off)
+    ctx.fillStyle = WHITE;
+    ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const icon = musicEnabled ? '🎵' : '🔇';
+    ctx.fillText(icon, buttonX + buttonSize / 2, buttonY + buttonSize / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+}
+
+// Check if music button was clicked
+function isMusicButtonClicked(x, y) {
+    const buttonSize = 35 * scaleFactor;
+    const buttonX = SCREEN_WIDTH - buttonSize - 10 * scaleFactor;
+    const buttonY = 10 * scaleFactor;
+    
+    return x >= buttonX && x <= buttonX + buttonSize &&
+           y >= buttonY && y <= buttonY + buttonSize;
 }
 
 // Google Analytics tracking
@@ -1237,8 +1312,9 @@ function draw() {
                 ctx.fillText(`💰 ${totalCoins}`, 10 * scaleFactor, 70 * scaleFactor);
             }
             
-            // Draw pause button (scaled for mobile)
-            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor;
+            // Draw pause button (scaled for mobile) - moved left to make room for music button
+            const musicButtonSize = 35 * scaleFactor;
+            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor - musicButtonSize - 15 * scaleFactor;
             const pauseButtonY = 10 * scaleFactor;
             const pauseButtonWidth = 90 * scaleFactor;
             const pauseButtonHeight = 30 * scaleFactor;
@@ -1427,6 +1503,9 @@ function drawTitleScreen() {
     ctx.textAlign = 'center';
     ctx.fillText('FLAPPY CHESS', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 150);
     
+    // Draw music button
+    drawMusicButton();
+    
     if (startButton) {
         ctx.drawImage(startButton, startButtonRect.x, startButtonRect.y);
     }
@@ -1491,6 +1570,9 @@ function drawShopScreen() {
     ctx.fillStyle = WHITE;
     ctx.font = bigFont;
     ctx.textAlign = 'center';
+    
+    // Draw music button
+    drawMusicButton();
     
     // Draw back button on all shop screens
     if (backButton && backButtonRect) {
@@ -1721,9 +1803,15 @@ function handleMouseClick(event) {
     const x = coords.x;
     const y = coords.y;
     
+    // Check music button on all screens first
+    if (isMusicButtonClicked(x, y)) {
+        toggleMusic();
+        return;
+    }
+    
     if (gameState === 'title') {
         // Start music on first user interaction if not already playing
-        if (!musicPlaying) {
+        if (!musicPlaying && musicEnabled) {
             playBackgroundMusic();
         }
         
@@ -1788,8 +1876,9 @@ function handleMouseClick(event) {
         }
     } else if (gameState === 'playing') {
         if (!gameOver) {
-            // Check if pause button was clicked
-            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor;
+            // Check if pause button was clicked (moved left to make room for music button)
+            const musicButtonSize = 35 * scaleFactor;
+            const pauseButtonX = SCREEN_WIDTH - 100 * scaleFactor - musicButtonSize - 15 * scaleFactor;
             const pauseButtonY = 10 * scaleFactor;
             const pauseButtonWidth = 90 * scaleFactor;
             const pauseButtonHeight = 30 * scaleFactor;
@@ -2234,6 +2323,9 @@ async function init() {
     
     // Load shop data from localStorage
     loadShopData();
+    
+    // Load music preference from localStorage
+    loadMusicPreference();
     
     // Track session start (after page loads)
     trackSessionStart();
