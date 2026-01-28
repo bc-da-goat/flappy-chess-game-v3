@@ -1226,10 +1226,8 @@ function startGame() {
     hideLeaderboardButton();
     hideGameOverButtons();
     
-    // 1 in 5 chance to spawn meteor
-    if (Math.random() < 0.2) {
-        spawnMeteor();
-    }
+    // Spawn meteor every time for testing
+    spawnMeteor();
     
     // Track game session start time
     window.gameSessionStartTime = Date.now();
