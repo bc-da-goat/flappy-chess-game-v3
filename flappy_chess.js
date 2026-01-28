@@ -2501,6 +2501,12 @@ function drawUnlockScreen() {
         ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
         ctx.textAlign = 'center';
         ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, frameY + frameSize + 50 * scaleFactor);
+        
+        // Draw continue button text (lower to avoid interfering with skin name)
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, frameY + frameSize + 120 * scaleFactor);
     } else {
         // If no skin unlocked, show message
         ctx.fillStyle = WHITE;
@@ -2508,13 +2514,13 @@ function drawUnlockScreen() {
         ctx.textAlign = 'center';
         ctx.fillText('All rare skins unlocked!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
         ctx.fillText('+1000 Coins', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50 * scaleFactor);
+        
+        // Draw continue button text
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
     }
-    
-    // Draw continue button text
-    ctx.fillStyle = WHITE;
-    ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
     ctx.textAlign = 'left';
 }
 
