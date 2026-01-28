@@ -83,6 +83,7 @@ let spawnDelay = 90;
 let meteorHit = false;
 let unlockedRareSkin = null;
 let showUnlockScreen = false;
+let unlockScreenFadeIn = 0; // Fade-in animation progress (0 to 1)
 
 // Coin system
 let totalCoins = 0;
@@ -203,6 +204,9 @@ async function loadImages() {
         hatSilver: 'silver hat.png',
         hatBronze: 'bronze hat.png',
         coin: 'coin.png',
+        // Meteor animations
+        meteorFlying: 'meteor flying animation.png',
+        meteorExploding: 'meteor exploding animation.png',
         // Shop thumbnails
         thumbnailDefault: 'default jetpack man thumbnail.png',
         thumbnailTin: 'tin robot thumbnail.png',
@@ -939,18 +943,22 @@ class Meteor {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 60;
-        this.height = 60;
+        this.width = 80;
+        this.height = 80;
         this.speed = 2; // Slow movement
         this.exploded = false;
         this.explosionFrames = 0;
-        this.maxExplosionFrames = 30;
+        this.maxExplosionFrames = 60; // Longer explosion animation
+        this.animationFrame = 0;
+        this.animationSpeed = 0.2; // Slower animation
     }
     
     update() {
         if (!this.exploded) {
             // Move slowly across screen
             this.x -= this.speed;
+            // Update flying animation frame
+            this.animationFrame += this.animationSpeed;
         } else {
             // Explosion animation
             this.explosionFrames++;
@@ -959,39 +967,62 @@ class Meteor {
     
     draw(ctx) {
         if (this.exploded) {
-            // Draw explosion effect
-            const explosionSize = this.explosionFrames * 3;
-            const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames);
-            ctx.save();
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = '#FF6B00';
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, explosionSize, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, explosionSize * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
+            // Draw exploding animation
+            if (images.meteorExploding) {
+                // Assume side-by-side frames (adjust frameCount if different layout)
+                const frameCount = 4; // Adjust if sprite sheet has different number of frames
+                const frameIndex = Math.min(Math.floor((this.explosionFrames / this.maxExplosionFrames) * frameCount), frameCount - 1);
+                const frameWidth = Math.floor(images.meteorExploding.width / frameCount);
+                const frameHeight = images.meteorExploding.height;
+                const sourceX = frameIndex * frameWidth;
+                
+                ctx.save();
+                const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames) * 0.5; // Fade out slightly
+                ctx.globalAlpha = alpha;
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(
+                    images.meteorExploding,
+                    sourceX, 0, frameWidth, frameHeight,
+                    this.x - 20, this.y - 20, this.width + 40, this.height + 40
+                );
+                ctx.restore();
+            } else {
+                // Fallback explosion effect
+                const explosionSize = this.explosionFrames * 3;
+                const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#FF6B00';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, explosionSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         } else {
-            // Draw meteor (simple orange/red circle with trail)
-            ctx.fillStyle = '#FF4500';
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw trail
-            ctx.fillStyle = '#FF6B00';
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2 + 10, this.y + this.height / 2, this.width / 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw glow
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 3, 0, Math.PI * 2);
-            ctx.stroke();
+            // Draw flying animation
+            if (images.meteorFlying) {
+                // Assume side-by-side frames (adjust frameCount if different layout)
+                const frameCount = 4; // Adjust if sprite sheet has different number of frames
+                const frameIndex = Math.floor(this.animationFrame) % frameCount;
+                const frameWidth = Math.floor(images.meteorFlying.width / frameCount);
+                const frameHeight = images.meteorFlying.height;
+                const sourceX = frameIndex * frameWidth;
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(
+                    images.meteorFlying,
+                    sourceX, 0, frameWidth, frameHeight,
+                    this.x, this.y, this.width, this.height
+                );
+            } else {
+                // Fallback if image not loaded
+                ctx.fillStyle = '#FF4500';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
     
@@ -1223,6 +1254,7 @@ function startGame() {
     meteorHit = false;
     unlockedRareSkin = null;
     showUnlockScreen = false;
+    unlockScreenFadeIn = 0;
     hideLeaderboardButton();
     hideGameOverButtons();
     
@@ -1377,20 +1409,21 @@ function update() {
             if (player && checkMeteorCollision(player, meteor)) {
                 meteor.explode();
                 meteorHit = true;
-                // Unlock a random rare skin
+                // Unlock a random rare skin (but don't show screen yet)
                 unlockRandomRareSkin();
             }
         }
         
         // Remove meteor if it goes off screen or explosion is complete
         if (meteor.x < -100 || (meteorHit && meteor.isExplosionComplete())) {
-            if (meteorHit && meteor.isExplosionComplete()) {
-                // Show unlock screen after explosion completes
-                showUnlockScreen = true;
-                gameOver = true;
-            }
             meteor = null;
         }
+    }
+    
+    // Update unlock screen fade-in if showing
+    if (showUnlockScreen && unlockScreenFadeIn < 1) {
+        unlockScreenFadeIn += 0.05; // Fade in over ~1 second at 60fps
+        if (unlockScreenFadeIn > 1) unlockScreenFadeIn = 1;
     }
     
     // Music continues playing regardless of game state
@@ -1403,6 +1436,12 @@ function update() {
         coinsEarnedThisGame = score; // 1 coin per point
         totalCoins += coinsEarnedThisGame;
         saveCoins();
+        
+        // If meteor was hit, show unlock screen after game over
+        if (meteorHit && unlockedRareSkin) {
+            showUnlockScreen = true;
+            unlockScreenFadeIn = 0; // Start fade-in
+        }
         
         // Track game over with metrics
         const gameSessionDuration = window.gameSessionStartTime ? 
@@ -1417,12 +1456,14 @@ function update() {
             game_duration: gameSessionDuration,
             session_duration: totalSessionDuration,
             games_played_this_session: gamesPlayedThisSession,
-            is_new_high_score: score > getPlayerHighScore()
+            is_new_high_score: score > getPlayerHighScore(),
+            meteor_hit: meteorHit,
+            rare_skin_unlocked: meteorHit ? unlockedRareSkin : null
         });
         
-        // Check if this is a new high score
+        // Check if this is a new high score (only show name input if not showing unlock screen)
         const currentHighScore = getPlayerHighScore();
-        if (score > currentHighScore) {
+        if (score > currentHighScore && !showUnlockScreen) {
             // New high score! Show name input modal after a short delay
             setTimeout(() => {
                 showNameInputModal();
@@ -2383,13 +2424,17 @@ function drawUnlockScreen() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     
-    // Draw "NEW CHARACTER UNLOCKED!" text
+    // Apply fade-in effect
+    ctx.save();
+    ctx.globalAlpha = unlockScreenFadeIn;
+    
+    // Draw "RARE SKIN UNLOCKED" text at the top
     ctx.fillStyle = '#FFD700';
     ctx.font = bigFont;
     ctx.textAlign = 'center';
-    ctx.fillText('NEW CHARACTER UNLOCKED!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 150 * scaleFactor);
+    ctx.fillText('RARE SKIN UNLOCKED', SCREEN_WIDTH / 2, 100 * scaleFactor);
     
-    // Draw unlocked skin thumbnail in a frame
+    // Draw unlocked skin thumbnail in a frame (with fade-in)
     if (unlockedRareSkin) {
         const skinNames = {
             'rareCat': 'Cat',
@@ -2409,20 +2454,25 @@ function drawUnlockScreen() {
         const frameX = SCREEN_WIDTH / 2 - thumbnailSize / 2;
         const frameY = SCREEN_HEIGHT / 2 - thumbnailSize / 2;
         
-        // Draw frame
+        // Draw frame (with fade-in scale effect)
+        const scale = 0.8 + (unlockScreenFadeIn * 0.2); // Scale from 0.8 to 1.0
+        const scaledSize = thumbnailSize * scale;
+        const scaledFrameX = SCREEN_WIDTH / 2 - scaledSize / 2;
+        const scaledFrameY = SCREEN_HEIGHT / 2 - scaledSize / 2;
+        
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 6 * scaleFactor;
-        ctx.strokeRect(frameX - 10 * scaleFactor, frameY - 10 * scaleFactor, thumbnailSize + 20 * scaleFactor, thumbnailSize + 20 * scaleFactor);
+        ctx.strokeRect(scaledFrameX - 10 * scaleFactor, scaledFrameY - 10 * scaleFactor, scaledSize + 20 * scaleFactor, scaledSize + 20 * scaleFactor);
         
         // Draw thumbnail
         if (thumbnails[unlockedRareSkin]) {
-            ctx.drawImage(thumbnails[unlockedRareSkin], frameX, frameY, thumbnailSize, thumbnailSize);
+            ctx.drawImage(thumbnails[unlockedRareSkin], scaledFrameX, scaledFrameY, scaledSize, scaledSize);
         }
         
         // Draw skin name
         ctx.fillStyle = WHITE;
         ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
-        ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, frameY + thumbnailSize + 50 * scaleFactor);
+        ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, scaledFrameY + scaledSize + 50 * scaleFactor);
     }
     
     // Draw continue button text
@@ -2430,6 +2480,7 @@ function drawUnlockScreen() {
     ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
     ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
     
+    ctx.restore();
     ctx.textAlign = 'left';
 }
 
