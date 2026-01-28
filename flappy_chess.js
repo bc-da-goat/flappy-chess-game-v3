@@ -2461,22 +2461,25 @@ function drawUnlockScreen() {
         ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
-    // Draw dark overlay
+    // Draw dark overlay (always visible)
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     
-    // Apply fade-in effect
+    // Draw "RARE SKIN UNLOCKED" text at the top (with fade-in)
     ctx.save();
-    ctx.globalAlpha = unlockScreenFadeIn;
-    
-    // Draw "RARE SKIN UNLOCKED" text at the top
+    // Ensure minimum visibility even during fade-in
+    ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
     ctx.fillStyle = '#FFD700';
     ctx.font = bigFont;
     ctx.textAlign = 'center';
     ctx.fillText('RARE SKIN UNLOCKED', SCREEN_WIDTH / 2, 100 * scaleFactor);
+    ctx.restore();
     
     // Draw unlocked skin thumbnail in a frame (with fade-in)
     if (unlockedRareSkin) {
+        ctx.save();
+        // Ensure minimum visibility even during fade-in
+        ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
         const skinNames = {
             'rareCat': 'Cat',
             'rareFish': 'Fish',
@@ -2513,14 +2516,30 @@ function drawUnlockScreen() {
         // Draw skin name
         ctx.fillStyle = WHITE;
         ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
         ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, scaledFrameY + scaledSize + 50 * scaleFactor);
+        ctx.restore();
+    } else {
+        // If no skin unlocked, show message
+        ctx.save();
+        // Ensure minimum visibility even during fade-in
+        ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('All rare skins unlocked!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+        ctx.fillText('+1000 Coins', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50 * scaleFactor);
+        ctx.restore();
     }
     
-    // Draw continue button text
+    // Draw continue button text (with fade-in)
+    ctx.save();
+    // Ensure minimum visibility even during fade-in
+    ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
     ctx.fillStyle = WHITE;
     ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+    ctx.textAlign = 'center';
     ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
-    
     ctx.restore();
     ctx.textAlign = 'left';
 }
