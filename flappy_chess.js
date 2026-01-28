@@ -83,7 +83,6 @@ let spawnDelay = 90;
 let meteorHit = false;
 let unlockedRareSkin = null;
 let showUnlockScreen = false;
-let unlockScreenFadeIn = 0; // Fade-in animation progress (0 to 1)
 
 // Coin system
 let totalCoins = 0;
@@ -207,6 +206,7 @@ async function loadImages() {
         // Meteor animations
         meteorFlying: 'meteor flying animation.png',
         meteorExploding: 'meteor exploding animation.png',
+        newCharacterFrame: 'new character frame.png',
         // Shop thumbnails
         thumbnailDefault: 'default jetpack man thumbnail.png',
         thumbnailTin: 'tin robot thumbnail.png',
@@ -1270,7 +1270,6 @@ function startGame() {
     meteorHit = false;
     unlockedRareSkin = null;
     showUnlockScreen = false;
-    unlockScreenFadeIn = 0;
     hideLeaderboardButton();
     hideGameOverButtons();
     
@@ -1436,12 +1435,6 @@ function update() {
         }
     }
     
-    // Update unlock screen fade-in if showing
-    if (showUnlockScreen && unlockScreenFadeIn < 1) {
-        unlockScreenFadeIn += 0.05; // Fade in over ~1 second at 60fps
-        if (unlockScreenFadeIn > 1) unlockScreenFadeIn = 1;
-    }
-    
     // Music continues playing regardless of game state
     
     if (checkCollisions()) {
@@ -1456,7 +1449,6 @@ function update() {
         // If meteor was hit, show unlock screen after game over
         if (meteorHit && unlockedRareSkin) {
             showUnlockScreen = true;
-            unlockScreenFadeIn = 0; // Start fade-in
         }
         
         // Track game over with metrics
@@ -2009,22 +2001,21 @@ function handleKeyDown(event) {
         }
     } else if (event.key === ' ' || event.key === 'Spacebar') {
         if (gameState === 'playing') {
-            if (showUnlockScreen) {
-                // Close unlock screen and return to title
-                showUnlockScreen = false;
-                unlockScreenFadeIn = 0;
-                gameOver = false;
-                gameState = 'title';
-                showLeaderboardButton();
-                // Check if we should show name input for high score
-                const currentHighScore = getPlayerHighScore();
-                if (pendingScore > currentHighScore) {
-                    setTimeout(() => {
-                        showNameInputModal();
-                    }, 500);
-                    setPlayerHighScore(pendingScore);
-                }
-            } else if (gameOver && !showNameInput) {
+        if (showUnlockScreen) {
+            // Close unlock screen and return to title
+            showUnlockScreen = false;
+            gameOver = false;
+            gameState = 'title';
+            showLeaderboardButton();
+            // Check if we should show name input for high score
+            const currentHighScore = getPlayerHighScore();
+            if (pendingScore > currentHighScore) {
+                setTimeout(() => {
+                    showNameInputModal();
+                }, 500);
+                setPlayerHighScore(pendingScore);
+            }
+        } else if (gameOver && !showNameInput) {
                 startGame();
             } else if (!paused && player && !showNameInput) {
                 player.jump();
@@ -2146,7 +2137,6 @@ function handleMouseClick(event) {
         if (showUnlockScreen) {
             // Any click closes unlock screen and returns to title
             showUnlockScreen = false;
-            unlockScreenFadeIn = 0;
             gameOver = false;
             gameState = 'title';
             showLeaderboardButton();
@@ -2461,25 +2451,18 @@ function drawUnlockScreen() {
         ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
     
-    // Draw dark overlay (always visible)
+    // Draw dark overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     
-    // Draw "RARE SKIN UNLOCKED" text at the top (with fade-in)
-    ctx.save();
-    // Ensure minimum visibility even during fade-in
-    ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
+    // Draw "RARE SKIN UNLOCKED" text at the top
     ctx.fillStyle = '#FFD700';
     ctx.font = bigFont;
     ctx.textAlign = 'center';
     ctx.fillText('RARE SKIN UNLOCKED', SCREEN_WIDTH / 2, 100 * scaleFactor);
-    ctx.restore();
     
-    // Draw unlocked skin thumbnail in a frame (with fade-in)
+    // Draw unlocked skin thumbnail in a frame
     if (unlockedRareSkin) {
-        ctx.save();
-        // Ensure minimum visibility even during fade-in
-        ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
         const skinNames = {
             'rareCat': 'Cat',
             'rareFish': 'Fish',
@@ -2494,53 +2477,44 @@ function drawUnlockScreen() {
             'rareIceMonster': images.thumbnailRareIceMonster
         };
         
-        const thumbnailSize = 200 * scaleFactor;
-        const frameX = SCREEN_WIDTH / 2 - thumbnailSize / 2;
-        const frameY = SCREEN_HEIGHT / 2 - thumbnailSize / 2;
+        // Frame size
+        const frameSize = 300 * scaleFactor;
+        const frameX = SCREEN_WIDTH / 2 - frameSize / 2;
+        const frameY = SCREEN_HEIGHT / 2 - frameSize / 2;
         
-        // Draw frame (with fade-in scale effect)
-        const scale = 0.8 + (unlockScreenFadeIn * 0.2); // Scale from 0.8 to 1.0
-        const scaledSize = thumbnailSize * scale;
-        const scaledFrameX = SCREEN_WIDTH / 2 - scaledSize / 2;
-        const scaledFrameY = SCREEN_HEIGHT / 2 - scaledSize / 2;
-        
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 6 * scaleFactor;
-        ctx.strokeRect(scaledFrameX - 10 * scaleFactor, scaledFrameY - 10 * scaleFactor, scaledSize + 20 * scaleFactor, scaledSize + 20 * scaleFactor);
-        
-        // Draw thumbnail
-        if (thumbnails[unlockedRareSkin]) {
-            ctx.drawImage(thumbnails[unlockedRareSkin], scaledFrameX, scaledFrameY, scaledSize, scaledSize);
+        // Draw the frame image first
+        if (images.newCharacterFrame) {
+            ctx.drawImage(images.newCharacterFrame, frameX, frameY, frameSize, frameSize);
         }
         
-        // Draw skin name
+        // Draw thumbnail on top of the frame (slightly smaller to fit inside)
+        const thumbnailSize = frameSize * 0.7; // 70% of frame size to fit inside
+        const thumbnailX = SCREEN_WIDTH / 2 - thumbnailSize / 2;
+        const thumbnailY = SCREEN_HEIGHT / 2 - thumbnailSize / 2;
+        
+        if (thumbnails[unlockedRareSkin]) {
+            ctx.drawImage(thumbnails[unlockedRareSkin], thumbnailX, thumbnailY, thumbnailSize, thumbnailSize);
+        }
+        
+        // Draw skin name below the frame
         ctx.fillStyle = WHITE;
         ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
         ctx.textAlign = 'center';
-        ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, scaledFrameY + scaledSize + 50 * scaleFactor);
-        ctx.restore();
+        ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, frameY + frameSize + 50 * scaleFactor);
     } else {
         // If no skin unlocked, show message
-        ctx.save();
-        // Ensure minimum visibility even during fade-in
-        ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
         ctx.fillStyle = WHITE;
         ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
         ctx.textAlign = 'center';
         ctx.fillText('All rare skins unlocked!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
         ctx.fillText('+1000 Coins', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 50 * scaleFactor);
-        ctx.restore();
     }
     
-    // Draw continue button text (with fade-in)
-    ctx.save();
-    // Ensure minimum visibility even during fade-in
-    ctx.globalAlpha = Math.max(unlockScreenFadeIn, 0.1);
+    // Draw continue button text
     ctx.fillStyle = WHITE;
     ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
     ctx.textAlign = 'center';
     ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
-    ctx.restore();
     ctx.textAlign = 'left';
 }
 
