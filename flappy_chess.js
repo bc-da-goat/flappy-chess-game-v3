@@ -969,12 +969,22 @@ class Meteor {
         if (this.exploded) {
             // Draw exploding animation
             if (images.meteorExploding) {
-                // Assume side-by-side frames (adjust frameCount if different layout)
-                const frameCount = 4; // Adjust if sprite sheet has different number of frames
+                // 4 frames side-by-side
+                const frameCount = 4;
                 const frameIndex = Math.min(Math.floor((this.explosionFrames / this.maxExplosionFrames) * frameCount), frameCount - 1);
-                const frameWidth = Math.floor(images.meteorExploding.width / frameCount);
+                const totalWidth = images.meteorExploding.width;
                 const frameHeight = images.meteorExploding.height;
-                const sourceX = frameIndex * frameWidth;
+                
+                // Calculate frame width - use Math.floor for all but last frame
+                let frameWidth, sourceX;
+                if (frameIndex < frameCount - 1) {
+                    frameWidth = Math.floor(totalWidth / frameCount);
+                    sourceX = frameIndex * frameWidth;
+                } else {
+                    // Last frame uses remaining pixels
+                    frameWidth = totalWidth - Math.floor(totalWidth / frameCount) * (frameCount - 1);
+                    sourceX = Math.floor(totalWidth / frameCount) * (frameCount - 1);
+                }
                 
                 ctx.save();
                 const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames) * 0.5; // Fade out slightly
@@ -1002,12 +1012,22 @@ class Meteor {
         } else {
             // Draw flying animation
             if (images.meteorFlying) {
-                // Assume side-by-side frames (adjust frameCount if different layout)
-                const frameCount = 4; // Adjust if sprite sheet has different number of frames
+                // 4 frames side-by-side
+                const frameCount = 4;
                 const frameIndex = Math.floor(this.animationFrame) % frameCount;
-                const frameWidth = Math.floor(images.meteorFlying.width / frameCount);
+                const totalWidth = images.meteorFlying.width;
                 const frameHeight = images.meteorFlying.height;
-                const sourceX = frameIndex * frameWidth;
+                
+                // Calculate frame width - use Math.floor for all but last frame
+                let frameWidth, sourceX;
+                if (frameIndex < frameCount - 1) {
+                    frameWidth = Math.floor(totalWidth / frameCount);
+                    sourceX = frameIndex * frameWidth;
+                } else {
+                    // Last frame uses remaining pixels
+                    frameWidth = totalWidth - Math.floor(totalWidth / frameCount) * (frameCount - 1);
+                    sourceX = Math.floor(totalWidth / frameCount) * (frameCount - 1);
+                }
                 
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
@@ -1993,7 +2013,22 @@ function handleKeyDown(event) {
         }
     } else if (event.key === ' ' || event.key === 'Spacebar') {
         if (gameState === 'playing') {
-            if (gameOver && !showNameInput) {
+            if (showUnlockScreen) {
+                // Close unlock screen and return to title
+                showUnlockScreen = false;
+                unlockScreenFadeIn = 0;
+                gameOver = false;
+                gameState = 'title';
+                showLeaderboardButton();
+                // Check if we should show name input for high score
+                const currentHighScore = getPlayerHighScore();
+                if (pendingScore > currentHighScore) {
+                    setTimeout(() => {
+                        showNameInputModal();
+                    }, 500);
+                    setPlayerHighScore(pendingScore);
+                }
+            } else if (gameOver && !showNameInput) {
                 startGame();
             } else if (!paused && player && !showNameInput) {
                 player.jump();
@@ -2115,8 +2150,18 @@ function handleMouseClick(event) {
         if (showUnlockScreen) {
             // Any click closes unlock screen and returns to title
             showUnlockScreen = false;
+            unlockScreenFadeIn = 0;
             gameOver = false;
             gameState = 'title';
+            showLeaderboardButton();
+            // Check if we should show name input for high score
+            const currentHighScore = getPlayerHighScore();
+            if (pendingScore > currentHighScore) {
+                setTimeout(() => {
+                    showNameInputModal();
+                }, 500);
+                setPlayerHighScore(pendingScore);
+            }
             return;
         }
         
