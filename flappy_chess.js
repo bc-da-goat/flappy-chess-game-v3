@@ -75,10 +75,14 @@ let sessionStartTime = Date.now();
 // Game objects
 let player = null;
 let chessPieces = [];
+let meteor = null;
 let score = 0;
 let gameOver = false;
 let spawnTimer = 0;
 let spawnDelay = 90;
+let meteorHit = false;
+let unlockedRareSkin = null;
+let showUnlockScreen = false;
 
 // Coin system
 let totalCoins = 0;
@@ -930,6 +934,81 @@ class ChessPiece {
     }
 }
 
+// Meteor class for rare skin unlock events
+class Meteor {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 60;
+        this.height = 60;
+        this.speed = 2; // Slow movement
+        this.exploded = false;
+        this.explosionFrames = 0;
+        this.maxExplosionFrames = 30;
+    }
+    
+    update() {
+        if (!this.exploded) {
+            // Move slowly across screen
+            this.x -= this.speed;
+        } else {
+            // Explosion animation
+            this.explosionFrames++;
+        }
+    }
+    
+    draw(ctx) {
+        if (this.exploded) {
+            // Draw explosion effect
+            const explosionSize = this.explosionFrames * 3;
+            const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#FF6B00';
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, explosionSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, explosionSize * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        } else {
+            // Draw meteor (simple orange/red circle with trail)
+            ctx.fillStyle = '#FF4500';
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw trail
+            ctx.fillStyle = '#FF6B00';
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2 + 10, this.y + this.height / 2, this.width / 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw glow
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    
+    getRect() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+    }
+    
+    explode() {
+        this.exploded = true;
+        this.explosionFrames = 0;
+    }
+    
+    isExplosionComplete() {
+        return this.exploded && this.explosionFrames >= this.maxExplosionFrames;
+    }
+}
+
 // Audio functions
 function shuffleArray(array) {
     const shuffled = [...array];
@@ -1133,6 +1212,7 @@ function startGame() {
     
     player = new JetpackMan(100, SCREEN_HEIGHT / 2);
     chessPieces = [];
+    meteor = null;
     score = 0;
     coinsEarnedThisGame = 0;
     gameOver = false;
@@ -1140,8 +1220,16 @@ function startGame() {
     spawnTimer = 0;
     gameState = 'playing';
     showNameInput = false;
+    meteorHit = false;
+    unlockedRareSkin = null;
+    showUnlockScreen = false;
     hideLeaderboardButton();
     hideGameOverButtons();
+    
+    // 1 in 5 chance to spawn meteor
+    if (Math.random() < 0.2) {
+        spawnMeteor();
+    }
     
     // Track game session start time
     window.gameSessionStartTime = Date.now();
@@ -1187,6 +1275,12 @@ function spawnChessPiece() {
     chessPieces.push(new ChessPiece(pieceType, x, y));
 }
 
+function spawnMeteor() {
+    // Spawn meteor at right side, random Y position
+    const y = Math.random() * (SCREEN_HEIGHT - 100) + 50;
+    meteor = new Meteor(SCREEN_WIDTH + 50, y);
+}
+
 function checkCollisions() {
     if (!player) return false;
     const playerRect = player.getRect();
@@ -1200,6 +1294,36 @@ function checkCollisions() {
         }
     }
     return false;
+}
+
+function checkMeteorCollision(player, meteor) {
+    if (!player || !meteor || meteor.exploded) return false;
+    
+    const playerRect = player.getRect();
+    const meteorRect = meteor.getRect();
+    
+    return playerRect.x < meteorRect.x + meteorRect.width &&
+           playerRect.x + playerRect.width > meteorRect.x &&
+           playerRect.y < meteorRect.y + meteorRect.height &&
+           playerRect.y + playerRect.height > meteorRect.y;
+}
+
+function unlockRandomRareSkin() {
+    const rareSkins = ['rareCat', 'rareFish', 'rareGorilla', 'rareIceMonster'];
+    const unlockedRareSkins = getUnlockedRareSkins();
+    
+    // Filter out already unlocked skins
+    const availableSkins = rareSkins.filter(skin => !unlockedRareSkins.includes(skin));
+    
+    if (availableSkins.length > 0) {
+        const randomSkin = availableSkins[Math.floor(Math.random() * availableSkins.length)];
+        unlockedRareSkin = randomSkin;
+        unlockRareSkin(randomSkin);
+    } else {
+        // All rare skins unlocked, give coins instead
+        unlockedRareSkin = null;
+        addCoins(1000);
+    }
 }
 
 function update() {
@@ -1243,6 +1367,31 @@ function update() {
                 pointSound.currentTime = 0;
                 pointSound.play().catch(err => console.warn('Could not play sound:', err));
             }
+        }
+    }
+    
+    // Update meteor if it exists
+    if (meteor) {
+        meteor.update();
+        
+        if (!meteorHit) {
+            // Check collision with player
+            if (player && checkMeteorCollision(player, meteor)) {
+                meteor.explode();
+                meteorHit = true;
+                // Unlock a random rare skin
+                unlockRandomRareSkin();
+            }
+        }
+        
+        // Remove meteor if it goes off screen or explosion is complete
+        if (meteor.x < -100 || (meteorHit && meteor.isExplosionComplete())) {
+            if (meteorHit && meteor.isExplosionComplete()) {
+                // Show unlock screen after explosion completes
+                showUnlockScreen = true;
+                gameOver = true;
+            }
+            meteor = null;
         }
     }
     
@@ -1320,6 +1469,12 @@ function draw() {
             for (let piece of chessPieces) {
                 piece.draw(ctx);
             }
+            
+            // Draw meteor if it exists
+            if (meteor) {
+                meteor.draw(ctx);
+            }
+            
             player.draw(ctx);
             
             ctx.fillStyle = WHITE;
@@ -1383,11 +1538,14 @@ function draw() {
                 ctx.fillText('PAUSED', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50);
                 
                 ctx.font = font;
-                ctx.fillText('Press P or click PAUSE to resume', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20 * scaleFactor);
-                ctx.textAlign = 'left';
-            }
-        } else {
-            // Display total coins in corner (always visible, even on game over)
+            ctx.fillText('Press P or click PAUSE to resume', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20 * scaleFactor);
+            ctx.textAlign = 'left';
+        }
+    } else if (showUnlockScreen) {
+        // Draw unlock screen with shop background
+        drawUnlockScreen();
+    } else {
+        // Display total coins in corner (always visible, even on game over)
             if (images.coin) {
                 const coinSize = 30 * scaleFactor;
                 ctx.drawImage(images.coin, 10 * scaleFactor, 10 * scaleFactor, coinSize, coinSize);
@@ -1634,22 +1792,22 @@ function drawSkinsShop() {
     ctx.fillText('SKINS SHOP', SCREEN_WIDTH / 2, 60 * scaleFactor);
     
     const skins = [
-        { id: 'default', name: 'Default', thumbnail: images.thumbnailDefault, price: 0 },
-        { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 0 },
-        { id: 'arcticResearcher', name: 'Arctic Researcher', thumbnail: images.thumbnailArcticResearcher, price: 0 },
-        { id: 'legendaryCrazedRobot', name: 'Crazed Robot', thumbnail: images.thumbnailLegendaryCrazedRobot, price: 0 },
-        { id: 'legendaryCyborg', name: 'Cyborg', thumbnail: images.thumbnailLegendaryCyborg, price: 0 },
-        { id: 'legendaryMage', name: 'Mage', thumbnail: images.thumbnailLegendaryMage, price: 0 },
-        { id: 'legendarySamurai', name: 'Samurai', thumbnail: images.thumbnailLegendarySamurai, price: 0 },
-        { id: 'longHair', name: 'Long Hair', thumbnail: images.thumbnailLongHair, price: 0 },
-        { id: 'merchant', name: 'Merchant', thumbnail: images.thumbnailMerchant, price: 0 },
-        { id: 'pirate', name: 'Pirate', thumbnail: images.thumbnailPirate, price: 0 },
-        { id: 'rareCat', name: 'Cat', thumbnail: images.thumbnailRareCat, price: 0 },
-        { id: 'rareFish', name: 'Fish', thumbnail: images.thumbnailRareFish, price: 0 },
-        { id: 'rareGorilla', name: 'Gorilla', thumbnail: images.thumbnailRareGorilla, price: 0 },
-        { id: 'rareIceMonster', name: 'Ice Monster', thumbnail: images.thumbnailRareIceMonster, price: 0 },
-        { id: 'steampunkGorilla', name: 'Steampunk Gorilla', thumbnail: images.thumbnailSteampunkGorilla, price: 0 },
-        { id: 'steamshipPilot', name: 'Steamship Pilot', thumbnail: images.thumbnailSteamshipPilot, price: 0 }
+        { id: 'default', name: 'Default', thumbnail: images.thumbnailDefault, price: 0, isRare: false },
+        { id: 'tin', name: 'Tin Robot', thumbnail: images.thumbnailTin, price: 100, isRare: false },
+        { id: 'arcticResearcher', name: 'Arctic Researcher', thumbnail: images.thumbnailArcticResearcher, price: 200, isRare: false },
+        { id: 'legendaryCrazedRobot', name: 'Crazed Robot', thumbnail: images.thumbnailLegendaryCrazedRobot, price: 5000, isRare: false },
+        { id: 'legendaryCyborg', name: 'Cyborg', thumbnail: images.thumbnailLegendaryCyborg, price: 5000, isRare: false },
+        { id: 'legendaryMage', name: 'Mage', thumbnail: images.thumbnailLegendaryMage, price: 5000, isRare: false },
+        { id: 'legendarySamurai', name: 'Samurai', thumbnail: images.thumbnailLegendarySamurai, price: 5000, isRare: false },
+        { id: 'longHair', name: 'Long Hair', thumbnail: images.thumbnailLongHair, price: 150, isRare: false },
+        { id: 'merchant', name: 'Merchant', thumbnail: images.thumbnailMerchant, price: 150, isRare: false },
+        { id: 'pirate', name: 'Pirate', thumbnail: images.thumbnailPirate, price: 150, isRare: false },
+        { id: 'rareCat', name: 'Cat', thumbnail: images.thumbnailRareCat, price: 0, isRare: true },
+        { id: 'rareFish', name: 'Fish', thumbnail: images.thumbnailRareFish, price: 0, isRare: true },
+        { id: 'rareGorilla', name: 'Gorilla', thumbnail: images.thumbnailRareGorilla, price: 0, isRare: true },
+        { id: 'rareIceMonster', name: 'Ice Monster', thumbnail: images.thumbnailRareIceMonster, price: 0, isRare: true },
+        { id: 'steampunkGorilla', name: 'Steampunk Gorilla', thumbnail: images.thumbnailSteampunkGorilla, price: 300, isRare: false },
+        { id: 'steamshipPilot', name: 'Steamship Pilot', thumbnail: images.thumbnailSteamshipPilot, price: 300, isRare: false }
     ];
     
     const thumbnailSize = 100 * scaleFactor;
@@ -1679,6 +1837,14 @@ function drawSkinsShop() {
             ctx.strokeRect(x - 2 * scaleFactor, y - 2 * scaleFactor, thumbnailSize + 4 * scaleFactor, thumbnailSize + 4 * scaleFactor);
         }
         
+        // Draw meteor icon for rare skins (if unlocked)
+        if (skin.isRare && isRareSkinUnlocked(skin.id)) {
+            ctx.fillStyle = '#FF4500';
+            ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('☄️', x + thumbnailSize - 15 * scaleFactor, y + 15 * scaleFactor);
+        }
+        
         // Draw price or "SELECTED" or "OWNED"
         ctx.fillStyle = WHITE;
         ctx.font = `${Math.round(14 * scaleFactor)}px Arial`;
@@ -1687,12 +1853,16 @@ function drawSkinsShop() {
         if (selectedSkin === skin.id) {
             ctx.fillStyle = '#FFD700';
             ctx.fillText('SELECTED', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
-        } else if (hasPurchasedSkin(skin.id)) {
+        } else if (hasPurchasedSkin(skin.id) || (skin.isRare && isRareSkinUnlocked(skin.id))) {
             ctx.fillStyle = '#0F0';
             ctx.fillText('OWNED', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
+        } else if (skin.isRare) {
+            ctx.fillStyle = '#FF4500';
+            ctx.fillText('METEOR', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
         } else {
             ctx.fillStyle = '#FFD700';
-            ctx.fillText('FREE', x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
+            const priceText = skin.price > 0 ? `${skin.price} coins` : 'FREE';
+            ctx.fillText(priceText, x + thumbnailSize / 2, y + thumbnailSize + 20 * scaleFactor);
         }
     });
 }
@@ -1902,6 +2072,15 @@ function handleMouseClick(event) {
             }
         }
     } else if (gameState === 'playing') {
+        // Handle unlock screen clicks
+        if (showUnlockScreen) {
+            // Any click closes unlock screen and returns to title
+            showUnlockScreen = false;
+            gameOver = false;
+            gameState = 'title';
+            return;
+        }
+        
         if (!gameOver) {
             // Check if pause button was clicked (moved left to make room for music button)
             const musicButtonSize = 35 * scaleFactor;
@@ -1925,22 +2104,22 @@ function handleMouseClick(event) {
 
 function handleSkinShopClick(x, y) {
     const skins = [
-        { id: 'default', price: 0 },
-        { id: 'tin', price: 0 },
-        { id: 'arcticResearcher', price: 0 },
-        { id: 'legendaryCrazedRobot', price: 0 },
-        { id: 'legendaryCyborg', price: 0 },
-        { id: 'legendaryMage', price: 0 },
-        { id: 'legendarySamurai', price: 0 },
-        { id: 'longHair', price: 0 },
-        { id: 'merchant', price: 0 },
-        { id: 'pirate', price: 0 },
-        { id: 'rareCat', price: 0 },
-        { id: 'rareFish', price: 0 },
-        { id: 'rareGorilla', price: 0 },
-        { id: 'rareIceMonster', price: 0 },
-        { id: 'steampunkGorilla', price: 0 },
-        { id: 'steamshipPilot', price: 0 }
+        { id: 'default', price: 0, isRare: false },
+        { id: 'tin', price: 100, isRare: false },
+        { id: 'arcticResearcher', price: 200, isRare: false },
+        { id: 'legendaryCrazedRobot', price: 5000, isRare: false },
+        { id: 'legendaryCyborg', price: 5000, isRare: false },
+        { id: 'legendaryMage', price: 5000, isRare: false },
+        { id: 'legendarySamurai', price: 5000, isRare: false },
+        { id: 'longHair', price: 150, isRare: false },
+        { id: 'merchant', price: 150, isRare: false },
+        { id: 'pirate', price: 150, isRare: false },
+        { id: 'rareCat', price: 0, isRare: true },
+        { id: 'rareFish', price: 0, isRare: true },
+        { id: 'rareGorilla', price: 0, isRare: true },
+        { id: 'rareIceMonster', price: 0, isRare: true },
+        { id: 'steampunkGorilla', price: 300, isRare: false },
+        { id: 'steamshipPilot', price: 300, isRare: false }
     ];
     
     const thumbnailSize = 100 * scaleFactor;
@@ -1957,13 +2136,37 @@ function handleSkinShopClick(x, y) {
         
         if (x >= itemX && x <= itemX + thumbnailSize &&
             y >= itemY && y <= itemY + thumbnailSize + 50 * scaleFactor) {
-            // All skins are free, so just select them
-            selectedSkin = skin.id;
-            saveShopData();
-            updatePlayerSkin();
-            // Auto-purchase if not already purchased
-            if (!hasPurchasedSkin(skin.id)) {
-                purchaseSkin(skin.id);
+            // Check if skin is already owned or unlocked
+            const isOwned = hasPurchasedSkin(skin.id) || (skin.isRare && isRareSkinUnlocked(skin.id));
+            
+            if (isOwned) {
+                // Just select it
+                selectedSkin = skin.id;
+                saveShopData();
+                updatePlayerSkin();
+            } else if (skin.isRare) {
+                // Rare skins can't be purchased, only unlocked via meteor
+                // Do nothing or show a message
+            } else if (skin.price > 0) {
+                // Try to purchase
+                if (totalCoins >= skin.price) {
+                    totalCoins -= skin.price;
+                    saveCoins();
+                    purchaseSkin(skin.id);
+                    selectedSkin = skin.id;
+                    saveShopData();
+                    updatePlayerSkin();
+                } else {
+                    // Not enough coins - could show a message here
+                }
+            } else {
+                // Free skin
+                selectedSkin = skin.id;
+                saveShopData();
+                updatePlayerSkin();
+                if (!hasPurchasedSkin(skin.id)) {
+                    purchaseSkin(skin.id);
+                }
             }
         }
     });
@@ -2106,6 +2309,9 @@ function loadShopData() {
     if (savedBackground) {
         selectedBackground = savedBackground;
     }
+    
+    // Load unlocked rare skins
+    loadUnlockedRareSkins();
 }
 
 function saveShopData() {
@@ -2131,6 +2337,102 @@ function purchaseBackground(bgId) {
 
 function hasPurchasedSkin(skinId) {
     return skinId === 'default' || purchasedSkins.includes(skinId);
+}
+
+// Rare skin unlock functions (separate from purchased skins)
+let unlockedRareSkins = [];
+
+function loadUnlockedRareSkins() {
+    const saved = localStorage.getItem('flappyChessUnlockedRareSkins');
+    if (saved) {
+        unlockedRareSkins = JSON.parse(saved);
+    }
+}
+
+function saveUnlockedRareSkins() {
+    localStorage.setItem('flappyChessUnlockedRareSkins', JSON.stringify(unlockedRareSkins));
+}
+
+function getUnlockedRareSkins() {
+    return unlockedRareSkins;
+}
+
+function unlockRareSkin(skinId) {
+    if (!unlockedRareSkins.includes(skinId)) {
+        unlockedRareSkins.push(skinId);
+        saveUnlockedRareSkins();
+        // Also add to purchased skins so it can be selected
+        if (!purchasedSkins.includes(skinId)) {
+            purchasedSkins.push(skinId);
+            saveShopData();
+        }
+    }
+}
+
+function isRareSkinUnlocked(skinId) {
+    return unlockedRareSkins.includes(skinId);
+}
+
+function drawUnlockScreen() {
+    // Draw shop background
+    if (images.shopBackground) {
+        ctx.drawImage(images.shopBackground, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else if (background) {
+        ctx.drawImage(background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    
+    // Draw dark overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    
+    // Draw "NEW CHARACTER UNLOCKED!" text
+    ctx.fillStyle = '#FFD700';
+    ctx.font = bigFont;
+    ctx.textAlign = 'center';
+    ctx.fillText('NEW CHARACTER UNLOCKED!', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 150 * scaleFactor);
+    
+    // Draw unlocked skin thumbnail in a frame
+    if (unlockedRareSkin) {
+        const skinNames = {
+            'rareCat': 'Cat',
+            'rareFish': 'Fish',
+            'rareGorilla': 'Gorilla',
+            'rareIceMonster': 'Ice Monster'
+        };
+        
+        const thumbnails = {
+            'rareCat': images.thumbnailRareCat,
+            'rareFish': images.thumbnailRareFish,
+            'rareGorilla': images.thumbnailRareGorilla,
+            'rareIceMonster': images.thumbnailRareIceMonster
+        };
+        
+        const thumbnailSize = 200 * scaleFactor;
+        const frameX = SCREEN_WIDTH / 2 - thumbnailSize / 2;
+        const frameY = SCREEN_HEIGHT / 2 - thumbnailSize / 2;
+        
+        // Draw frame
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 6 * scaleFactor;
+        ctx.strokeRect(frameX - 10 * scaleFactor, frameY - 10 * scaleFactor, thumbnailSize + 20 * scaleFactor, thumbnailSize + 20 * scaleFactor);
+        
+        // Draw thumbnail
+        if (thumbnails[unlockedRareSkin]) {
+            ctx.drawImage(thumbnails[unlockedRareSkin], frameX, frameY, thumbnailSize, thumbnailSize);
+        }
+        
+        // Draw skin name
+        ctx.fillStyle = WHITE;
+        ctx.font = `${Math.round(32 * scaleFactor)}px Arial`;
+        ctx.fillText(skinNames[unlockedRareSkin] || unlockedRareSkin, SCREEN_WIDTH / 2, frameY + thumbnailSize + 50 * scaleFactor);
+    }
+    
+    // Draw continue button text
+    ctx.fillStyle = WHITE;
+    ctx.font = `${Math.round(20 * scaleFactor)}px Arial`;
+    ctx.fillText('Press SPACE or click to continue', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200 * scaleFactor);
+    
+    ctx.textAlign = 'left';
 }
 
 function hasPurchasedBackground(bgId) {
