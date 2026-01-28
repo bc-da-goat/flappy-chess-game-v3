@@ -967,24 +967,22 @@ class Meteor {
     
     draw(ctx) {
         if (this.exploded) {
-            // Draw exploding animation
+            // Draw exploding animation (4 frames in 2x2 grid)
             if (images.meteorExploding) {
-                // 4 frames side-by-side
                 const frameCount = 4;
                 const frameIndex = Math.min(Math.floor((this.explosionFrames / this.maxExplosionFrames) * frameCount), frameCount - 1);
-                const totalWidth = images.meteorExploding.width;
-                const frameHeight = images.meteorExploding.height;
                 
-                // Calculate frame width - use Math.floor for all but last frame
-                let frameWidth, sourceX;
-                if (frameIndex < frameCount - 1) {
-                    frameWidth = Math.floor(totalWidth / frameCount);
-                    sourceX = frameIndex * frameWidth;
-                } else {
-                    // Last frame uses remaining pixels
-                    frameWidth = totalWidth - Math.floor(totalWidth / frameCount) * (frameCount - 1);
-                    sourceX = Math.floor(totalWidth / frameCount) * (frameCount - 1);
-                }
+                // 2x2 grid layout - same as 4-frame jetpack animations
+                const totalWidth = images.meteorExploding.width;
+                const totalHeight = images.meteorExploding.height;
+                const frameWidth = Math.floor(totalWidth / 2);
+                const frameHeight = Math.floor(totalHeight / 2);
+                
+                // Calculate row and column for 2x2 grid
+                const row = Math.floor(frameIndex / 2);
+                const col = frameIndex % 2;
+                const sourceX = col * frameWidth;
+                const sourceY = row * frameHeight;
                 
                 ctx.save();
                 const alpha = 1 - (this.explosionFrames / this.maxExplosionFrames) * 0.5; // Fade out slightly
@@ -993,7 +991,7 @@ class Meteor {
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(
                     images.meteorExploding,
-                    sourceX, 0, frameWidth, frameHeight,
+                    sourceX, sourceY, frameWidth, frameHeight,
                     this.x - 20, this.y - 20, this.width + 40, this.height + 40
                 );
                 ctx.restore();
@@ -1010,30 +1008,28 @@ class Meteor {
                 ctx.restore();
             }
         } else {
-            // Draw flying animation
+            // Draw flying animation (4 frames in 2x2 grid)
             if (images.meteorFlying) {
-                // 4 frames side-by-side
                 const frameCount = 4;
                 const frameIndex = Math.floor(this.animationFrame) % frameCount;
-                const totalWidth = images.meteorFlying.width;
-                const frameHeight = images.meteorFlying.height;
                 
-                // Calculate frame width - use Math.floor for all but last frame
-                let frameWidth, sourceX;
-                if (frameIndex < frameCount - 1) {
-                    frameWidth = Math.floor(totalWidth / frameCount);
-                    sourceX = frameIndex * frameWidth;
-                } else {
-                    // Last frame uses remaining pixels
-                    frameWidth = totalWidth - Math.floor(totalWidth / frameCount) * (frameCount - 1);
-                    sourceX = Math.floor(totalWidth / frameCount) * (frameCount - 1);
-                }
+                // 2x2 grid layout - same as 4-frame jetpack animations
+                const totalWidth = images.meteorFlying.width;
+                const totalHeight = images.meteorFlying.height;
+                const frameWidth = Math.floor(totalWidth / 2);
+                const frameHeight = Math.floor(totalHeight / 2);
+                
+                // Calculate row and column for 2x2 grid
+                const row = Math.floor(frameIndex / 2);
+                const col = frameIndex % 2;
+                const sourceX = col * frameWidth;
+                const sourceY = row * frameHeight;
                 
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(
                     images.meteorFlying,
-                    sourceX, 0, frameWidth, frameHeight,
+                    sourceX, sourceY, frameWidth, frameHeight,
                     this.x, this.y, this.width, this.height
                 );
             } else {
